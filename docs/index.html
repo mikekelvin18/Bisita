@@ -93,9 +93,11 @@ body.look #look { display: block; }
 .compass { position: absolute; left: 0; top: 0; font-weight: 700; font-size: 15px; letter-spacing: .1em; color: var(--stone); transform: translate(-50%, -140%); text-shadow: 0 1px 4px #000; }
 .compass.minor { font-size: 12px; color: var(--mist); font-weight: 600; }
 .nadir { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); font-size: 14px; color: var(--mist); text-align: center; width: 220px; text-shadow: 0 1px 4px #000; }
-.olabel { position: absolute; left: 0; top: 0; width: 160px; margin-left: -80px; text-align: center; pointer-events: none; text-shadow: 0 1px 3px #000, 0 0 10px rgba(0,0,0,.9); }
-.olabel b { display: block; font-size: 14px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
-.olabel small { display: block; font-size: 12px; color: var(--mist); font-variant-numeric: tabular-nums; }
+.olabel { position: absolute; left: 0; top: 0; width: 140px; margin-left: -70px; text-align: center; pointer-events: none; text-shadow: 0 1px 2px rgba(0,0,0,.9), 0 0 8px rgba(0,0,0,.6); opacity: .8; transition: opacity .2s; }
+.olabel b { display: block; font-size: 12px; font-weight: 600; letter-spacing: .02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.olabel small { display: block; font-size: 11px; color: var(--stone); opacity: .8; font-variant-numeric: tabular-nums; }
+.olabel small:empty { display: none; }
+.olabel.on { opacity: 1; } .olabel.on b { font-size: 13px; }
 .olabel[hidden] { display: none; }
 #reticle { position: fixed; left: 50%; top: 50%; width: 76px; height: 76px; margin: -38px 0 0 -38px; border: 1.5px solid rgba(233,227,214,.55); border-radius: 50%; pointer-events: none; z-index: 3; display: none; }
 #reticle::after { content: ""; position: absolute; left: 50%; top: 50%; width: 4px; height: 4px; margin: -2px; border-radius: 50%; background: rgba(233,227,214,.8); }
@@ -119,8 +121,8 @@ body.look #focus:not([hidden]) { display: flex; }
   #focus { left: 12px; right: 12px; max-width: none; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); padding: 14px 14px 12px; border-radius: 20px; background: rgba(8,17,19,.72); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); border: 1px solid var(--line); }
   body.look #focus:not([hidden]) { display: grid; grid-template-columns: 1fr auto; align-items: center; column-gap: 12px; }
   #focus > div { display: contents; }
-  #f-name { font-size: 24px; grid-column: 1; text-shadow: none; }
-  #f-meta { grid-column: 1; font-size: 12px; text-shadow: none; }
+  #f-name { font-size: 20px; grid-column: 1; text-shadow: none; }
+  #f-meta { grid-column: 1; font-size: 11px; text-shadow: none; }
   #f-go { grid-column: 2; grid-row: 1 / span 2; min-height: 48px; }
   #f-layers { grid-column: 1 / -1; max-width: none; margin: 12px -14px 0; padding: 0 14px 2px; scroll-snap-type: x mandatory; scroll-padding: 0 14px;
     -webkit-mask-image: linear-gradient(to right, transparent, #000 14px, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, transparent, #000 14px, #000 calc(100% - 28px), transparent); }
@@ -1191,12 +1193,13 @@ function updateLook(w, h) {
       const s = it.holder.scale.x;
       const below = new THREE.Vector3(0, (it.art ? -0.4 : -0.17) * s, 0).applyQuaternion(it.holder.quaternion).add(it.holder.position).project(camera);
       const x = (below.x * 0.5 + 0.5) * w, y = (-below.y * 0.5 + 0.5) * h + 14;
-      const r = [x - 80, y - 4, x + 80, y + 40];
+      const r = [x - 62, y - 2, x + 62, y + (it === best ? 30 : 18)];
       show = below.z < 1 && !boxes.some((q) => !(r[2] < q[0] || r[0] > q[2] || r[3] < q[1] || r[1] > q[3]));
       if (show) {
         boxes.push(r); it.label.style.transform = `translate(${x}px, ${y}px)`;
         const more = it.stack ? it.stack.length - 1 : 0;
-        it.label.querySelector("small").textContent = fmtDist(it.d.km) + (more && it !== best ? ` · +${more} in line` : "");
+        it.label.querySelector("small").textContent = it === best ? fmtDist(it.d.km) : "";
+        it.label.classList.toggle("on", it === best);
       }
     }
     it.label.hidden = !show;
@@ -1580,10 +1583,15 @@ function onOrient(e) {
     if (motion.off === null) { if (!good && !motion.wait) motion.wait = now; if (good || now - motion.wait > 1500) { motion.off = want; motion.sx = motion.sy = 0; motion.t0 = now; } }
     else if (good) {
       const k = 0.03; motion.sx = motion.sx * (1 - k) + Math.cos(want * D) * k; motion.sy = motion.sy * (1 - k) + Math.sin(want * D) * k;
-      if (now - motion.t0 > 1500 && Math.hypot(motion.sx, motion.sy) > 0.6) {
+      // Never jump. While you turn, north may slide towards the compass by at most
+      // 6% of how far you turned, which the eye can't see; when still, nothing moves.
+      const dt = Math.min(0.1, (now - (motion.lastT || now)) / 1000);
+      if (now - motion.t0 > 800 && Math.hypot(motion.sx, motion.sy) > 0.6) {
         const avg = (Math.atan2(motion.sy, motion.sx) / D + 360) % 360, diff = ((avg - motion.off + 540) % 360) - 180;
-        if (Math.abs(diff) > 10 && (!spinKnown() || motion.rate > 45)) { motion.off = avg; motion.t0 = now; }
+        const turned = spinKnown() ? motion.rate * dt : 0, step = Math.min(Math.abs(diff), 0.06 * turned);
+        if (Math.abs(diff) > 2) motion.off = (motion.off + Math.sign(diff) * step + 360) % 360;
       }
+      motion.lastT = now;
     }
     if (motion.off === null) return;
     if (DEBUG) DEBUG.textContent = `alpha ${e.alpha.toFixed(1)} beta ${e.beta.toFixed(1)} gamma ${e.gamma.toFixed(1)}\ncompass ${e.webkitCompassHeading.toFixed(1)} acc ${acc}\nnorth offset ${motion.off.toFixed(1)}\nspin ${spinKnown() ? motion.rate.toFixed(1) + " deg/s" : "none"}`;
