@@ -541,8 +541,11 @@ const dome = new THREE.Mesh(new THREE.SphereGeometry(50, 64, 48), new THREE.Shad
       float spoke = (1.0 - smoothstep(0.0, 0.18, abs(fract(az / 30.0 + 0.5) - 0.5) * 30.0 * cos(radians(el)))) * step(el, -2.0) * step(-86.0, el);
       vec3 ground = deep + vec3(0.25,0.32,0.30) * max(ring, spoke) * 0.22;
       if (y < 0.0) {
-        vec3 de = d.x * uE + d.y * uU - d.z * uN;           // view direction on the globe
-        vec3 q = uU + (-2.0 * d.y) * de;                     // where the line leaves the far side
+        // same mapping as the places: looking 0° to 90° down walks from 40° to 180°
+        // of arc across the globe, so continents line up with the places on them
+        float arc = radians(40.0 + degrees(-asin(clamp(y, -1., 0.))) / 90.0 * 140.0);
+        vec2 hz = normalize(vec2(d.x, -d.z) + 1e-6);         // east, north
+        vec3 q = cos(arc) * uU + sin(arc) * (hz.x * uE + hz.y * uN);
         float lat = asin(clamp(q.z, -1., 1.)), lon = atan(q.y, q.x);
         float m = texture2D(earthMap, vec2(lon / 6.2831853 + 0.5, lat / 3.1415927 + 0.5)).r;
         // ghost continents: land as pale mist with a fine glowing coastline, oceans left dark
@@ -822,9 +825,9 @@ function drawSil(it) {
 }
 // ---------- layering places that share a direction ----------
 // Places close together in direction form a stack. The nearest stays at its true
-// direction; each farther one sits just below the one in front (farther really is
-// lower, since the line to it dips deeper through the Earth), smaller and hazier,
-// like ridges fading into the distance. Aiming at a layer pulls it into focus.
+// bearing; on the horizon each farther one peeks out above the one in front, and
+// below the horizon each sits deeper, smaller and hazier, like ridges fading into
+// the distance. Aiming at a layer pulls it into focus.
 // rough width of each built landmark, so up close it shows at its real size
 const BUILT_KM = { "eiffel-tower": 0.33, "taj-mahal": 0.3, giza: 1.2, petra: 0.08, "angkor-wat": 1.5, "great-wall": 2 };
 function layoutLook() {
@@ -852,8 +855,18 @@ function layoutLook() {
     g.sort((a, b) => a.d.km - b.d.km);
     g.forEach((it, k) => {
       it.layer = k; it.stack = g.length > 1 ? g : null;
-      let el = it.d.el + it.near * it.w * (it.art ? 0.36 : 0.05); // up close, the base sits on the horizon
-      if (k > 0) { const prev = g[k - 1]; el = Math.min(el, prev.dispEl - 0.24 * prev.w); }
+      // Places within about 4,500 km stand on the horizon, like distant mountains.
+      // Beyond that they sink, step by step, until the far side of the planet is
+      // straight down under your feet.
+      const arc = it.d.km / 6371 / D, onH = Math.max(0, Math.min(1, (60 - arc) / 20));
+      const dip = -Math.max(0, arc - 40) / 140 * 90;
+      let el = dip + onH * it.w * (it.art ? 0.36 : 0.05);
+      if (k > 0) {
+        // behind another place: on the horizon, farther ridges peek out above the
+        // nearer one; below the horizon, they sit deeper
+        const prev = g[k - 1];
+        el = onH > 0.5 ? prev.dispEl + 0.17 * prev.w : Math.min(el, prev.dispEl - 0.24 * prev.w);
+      }
       it.dispEl = Math.max(-88, el);
       const e = it.dispEl * D, b = it.d.brg * D;
       it.dv = new THREE.Vector3(Math.sin(b) * Math.cos(e), Math.sin(e), -Math.cos(b) * Math.cos(e));
@@ -966,7 +979,7 @@ function updateLook(w, h) {
     let show = it === active && f > Math.cos(Math.min(80, look.fov * 0.75) * D);
     if (show) {
       const s = it.holder.scale.x;
-      const below = new THREE.Vector3(0, -0.3 * s, 0).applyQuaternion(it.holder.quaternion).add(it.holder.position).project(camera);
+      const below = new THREE.Vector3(0, (it.art ? -0.4 : -0.17) * s, 0).applyQuaternion(it.holder.quaternion).add(it.holder.position).project(camera);
       const x = (below.x * 0.5 + 0.5) * w, y = (-below.y * 0.5 + 0.5) * h + 14;
       const r = [x - 80, y - 4, x + 80, y + 40];
       show = below.z < 1 && !boxes.some((q) => !(r[2] < q[0] || r[0] > q[2] || r[3] < q[1] || r[1] > q[3]));
@@ -1000,7 +1013,7 @@ function updateLook(w, h) {
     const hud = $("focus");
     if (focused) {
       $("f-name").textContent = focused.p.name;
-      $("f-meta").textContent = `${CATS[focused.p.cat]} · ${fmtDist(focused.d.km)} ${compassWord(focused.d.brg)}${focused.d.el < -3 ? ", through the Earth" : ""}`;
+      $("f-meta").textContent = `${CATS[focused.p.cat]} · ${fmtDist(focused.d.km)} ${compassWord(focused.d.brg)}${focused.d.km > 6000 ? ", through the Earth" : ""}`;
       $("f-go").setAttribute("aria-label", `Explore ${focused.p.name}`);
       hud.hidden = false;
     } else hud.hidden = true;
