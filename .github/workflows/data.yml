@@ -1,0 +1,26 @@
+name: Fetch data
+# Runs the data scripts on GitHub's servers (which can reach Wikidata, Wikimedia
+# Commons and the satellite archive) and commits the results back.
+on:
+  workflow_dispatch:
+  push:
+    paths: ["tools/fetch_unesco.py", ".github/workflows/data.yml", "tools/requests/**"]
+  schedule:
+    - cron: "17 6 1 * *"
+permissions:
+  contents: write
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: UNESCO World Heritage list
+        run: python3 tools/fetch_unesco.py
+      - name: Commit results
+        run: |
+          git config user.name "bisita-data-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data
+          git diff --cached --quiet || (git commit -m "Update data from Wikidata and Wikimedia Commons" && git push)
