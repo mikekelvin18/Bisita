@@ -96,6 +96,15 @@ body.look #look { display: block; }
 body.look #reticle { display: block; }
 body.look #hint { top: calc(84px + env(safe-area-inset-top, 0px)); bottom: auto; }
 body.look::after { content: ""; position: fixed; left: 0; right: 0; bottom: 0; height: 220px; z-index: 3; pointer-events: none; background: linear-gradient(to top, rgba(8,17,19,.82), rgba(8,17,19,0)); }
+#pop { position: fixed; inset: 0; z-index: 9; display: grid; place-items: center; padding: 16px; background: rgba(8,17,19,.35); }
+.pop-card { position: relative; width: min(380px, 100%); background: var(--deep); border: 1px solid var(--line); border-radius: 22px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.55); animation: popin .35s cubic-bezier(.2,.9,.3,1.2); }
+@keyframes popin { from { transform: translateY(24px) scale(.92); opacity: 0; } to { transform: none; opacity: 1; } }
+#pop-img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: var(--raise); }
+.pop-body { padding: 14px 18px 18px; }
+.pop-body h2 { font-family: var(--display); font-weight: 400; font-size: 28px; line-height: 1.1; margin: 4px 0 4px; }
+.pop-body p { margin: 0; } #pop-meta { color: var(--mist); font-size: 15px; margin-bottom: 14px; }
+.pop-body .btn { width: 100%; justify-content: center; }
+.pop-x { position: absolute; top: 10px; right: 10px; width: 44px; height: 44px; border-radius: 22px; border: 0; background: rgba(8,17,19,.7); color: var(--stone); font-size: 26px; line-height: 1; cursor: pointer; }
 #focus { position: fixed; z-index: 4; left: max(16px, env(safe-area-inset-left, 0px)); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); display: none; align-items: flex-end; gap: 14px; max-width: calc(100% - 32px); }
 body.look #focus:not([hidden]) { display: flex; }
 #f-name { font-family: var(--display); font-size: 30px; line-height: 1.05; margin: 0; text-shadow: 0 2px 12px rgba(0,0,0,.8); }
@@ -250,6 +259,18 @@ a { color: var(--sea); }
 <div id="pins" aria-label="Places on the globe"></div>
 <div id="look" aria-label="Places around you"></div>
 <div id="reticle" aria-hidden="true"></div>
+<div id="pop" hidden role="dialog" aria-modal="false" aria-labelledby="pop-name">
+  <div class="pop-card">
+    <button class="pop-x" id="pop-x" type="button" aria-label="Close">&times;</button>
+    <img id="pop-img" alt="">
+    <div class="pop-body">
+      <p class="eyebrow" id="pop-cat"></p>
+      <h2 id="pop-name"></h2>
+      <p id="pop-meta"></p>
+      <button class="btn primary" id="pop-go" type="button">See photos and 3D</button>
+    </div>
+  </div>
+</div>
 <div id="focus" hidden>
   <div><p id="f-name"></p><p id="f-meta"></p><div id="f-layers" role="group" aria-label="Places in this direction, near to far" hidden></div></div>
   <button class="btn primary" id="f-go" type="button">Explore</button>
@@ -883,19 +904,7 @@ const LINE_ART = {
   },
 };
 const lookItems = [];
-const CARD_W = 512, CARD_H = 452;
-function drawCard(im) {
-  const cv = document.createElement("canvas"); cv.width = CARD_W; cv.height = CARD_H;
-  const g = cv.getContext("2d"), pw = CARD_W - 16, ph = 360, x0 = 8, y0 = 8, r = 30;
-  const rr = (x, y, w, h, r) => { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); };
-  // stem down to the exact direction
-  g.fillStyle = "#e9e3d6"; g.beginPath(); g.moveTo(CARD_W / 2 - 22, y0 + ph); g.lineTo(CARD_W / 2, CARD_H - 4); g.lineTo(CARD_W / 2 + 22, y0 + ph); g.closePath(); g.fill();
-  rr(x0 - 6, y0 - 6, pw + 12, ph + 12, r + 6); g.fill();
-  g.save(); rr(x0, y0, pw, ph, r); g.clip();
-  const s = Math.max(pw / im.width, ph / im.height), w = im.width * s, h = im.height * s;
-  g.drawImage(im, x0 + (pw - w) / 2, y0 + (ph - h) / 2, w, h); g.restore();
-  return cv;
-}
+
 function buildLookItem(p) {
   const holder = new THREE.Group();
   const item = { p, holder, d: null, art: !!LINE_ART[p.id], mat: null, reveal: 0, revealed: false };
@@ -928,13 +937,8 @@ function buildLookItem(p) {
       drawSil(item);
     });
   }
-  // the real photo of the place, as a solid postcard on a stem that points to its spot
-  const CW = 0.46, CH = CW * CARD_H / CARD_W;
-  item.cardMat = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, opacity: 0 });
-  const card = new THREE.Mesh(new THREE.PlaneGeometry(CW, CH), item.cardMat); card.position.y = CH / 2; card.renderOrder = 2; holder.add(card);
-  loadImg(`places/${p.id}-card.jpg`).then((im) => { const t = new THREE.CanvasTexture(drawCard(im)); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4; item.cardMat.map = t; item.cardMat.needsUpdate = true; item.hasCard = true; }).catch(() => {});
-  const hit = new THREE.Mesh(new THREE.PlaneGeometry(CW, CH), new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false }));
-  hit.position.y = CH / 2; hit.userData.item = item; holder.add(hit); item.hit = hit;
+  const hit = new THREE.Mesh(new THREE.PlaneGeometry(1, 0.9), new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false }));
+  hit.userData.item = item; holder.add(hit); item.hit = hit;
   const label = document.createElement("div"); label.className = "olabel"; label.setAttribute("aria-hidden", "true");
   label.innerHTML = "<b></b><small></small>"; label.querySelector("b").textContent = p.name;
   lookWrap.appendChild(label); item.label = label;
@@ -1151,7 +1155,7 @@ function updateLook(w, h) {
     let show = it === active && f > Math.cos(Math.min(80, look.fov * 0.75) * D);
     if (show) {
       const s = it.holder.scale.x;
-      const below = new THREE.Vector3(0, (it.hasCard ? -0.02 : it.art ? -0.4 : -0.17) * s, 0).applyQuaternion(it.holder.quaternion).add(it.holder.position).project(camera);
+      const below = new THREE.Vector3(0, (it.art ? -0.4 : -0.17) * s, 0).applyQuaternion(it.holder.quaternion).add(it.holder.position).project(camera);
       const x = (below.x * 0.5 + 0.5) * w, y = (-below.y * 0.5 + 0.5) * h + 14;
       const r = [x - 80, y - 4, x + 80, y + 40];
       show = below.z < 1 && !boxes.some((q) => !(r[2] < q[0] || r[0] > q[2] || r[3] < q[1] || r[1] > q[3]));
@@ -1175,11 +1179,12 @@ function updateLook(w, h) {
     it.tint = (it.tint ?? tint) + (tint - (it.tint ?? tint)) * k;
     it.op = (it.op ?? op) + (op - (it.op ?? op)) * k;
     const col = new THREE.Color().copy(WHITE).lerp(HAZE, it.tint);
-    const cardOn = !!it.hasCard;
-    if (cardOn) { it.cardMat.opacity = Math.max(it === best ? 1 : 0.55, it.op); it.cardMat.color.copy(new THREE.Color().copy(WHITE).lerp(HAZE, it.tint * 0.35)).multiplyScalar(theme === "night" && !ar ? 0.82 : 1); }
-    if (it.ghostMat) { it.ghostMat.opacity = cardOn ? 0 : it.op * (ar ? 1 : it.art ? 0.5 : 0.95); it.ghostMat.color.copy(col); }
-    if (it.silMat) { it.silMat.opacity = cardOn || it.ghostMat ? 0 : it.op; it.silMat.color.copy(col); }
-    if (it.art) { it.mat.opacity = cardOn ? 0 : Math.min(1, it.op + it.reveal); it.mat.color.copy(col); }
+    // the landform itself: solid and true-colour; the ones you aren't aiming at
+    // stay solid too, just a little softer and bluer with distance
+    const solid = it === best ? 1 : Math.max(0.75, it.op), night = theme === "night" && !ar ? 0.8 : 1;
+    if (it.ghostMat) { it.ghostMat.opacity = solid; it.ghostMat.color.copy(WHITE).lerp(HAZE, it.tint * 0.3).multiplyScalar(night); }
+    if (it.silMat) { it.silMat.opacity = it.ghostMat ? 0 : it.op; it.silMat.color.copy(col); }
+    if (it.art) { it.mat.opacity = Math.min(1, Math.max(0.8, it.op) + it.reveal); it.mat.color.copy(col); }
     const target = it.revealed ? 1 : 0;
     it.reveal += (target - it.reveal) * k;
   }
@@ -1269,9 +1274,22 @@ function stepZoom(now) {
   if (!zoomAnim) return;
   const z = zoomAnim, k = Math.min(1, (now - z.t0) / (reduce ? 1 : 1100)), e = ease(k);
   look.yaw = (z.from.yaw + (z.to.yaw - z.from.yaw) * e + 360) % 360; look.pitch = z.from.pitch + (z.to.pitch - z.from.pitch) * e; look.fov = z.from.fov + (z.to.fov - z.from.fov) * e;
-  if (k >= 1) { zoomAnim = null; z.it.revealed = false; visit(z.it.p); setTimeout(() => (look.fov = z.from.fov), 600); }
+  if (k >= 1) { zoomAnim = null; z.it.revealed = false; showPop(z.it); setTimeout(() => (look.fov = z.from.fov), 600); }
 }
 $("f-go").addEventListener("click", () => { if (focused) approach(focused); });
+let popItem = null;
+function showPop(it) {
+  popItem = it;
+  $("pop-img").src = `places/${it.p.id}-card.jpg`; $("pop-img").alt = `${it.p.name}`;
+  $("pop-cat").textContent = CATS[it.p.cat];
+  $("pop-name").textContent = it.p.name;
+  $("pop-meta").textContent = `${it.p.country} · ${fmtDist(it.d.km)} ${compassWord(it.d.brg)}`;
+  $("pop").hidden = false; setTimeout(() => $("pop-go").focus(), 30);
+}
+function hidePop() { $("pop").hidden = true; popItem = null; }
+$("pop-x").addEventListener("click", hidePop);
+$("pop").addEventListener("click", (e) => { if (e.target === $("pop")) hidePop(); });
+$("pop-go").addEventListener("click", () => { const it = popItem; hidePop(); if (it) visit(it.p); });
 
 // ---------- place (flyover) scene ----------
 const placeScene = new THREE.Scene();
@@ -1358,25 +1376,29 @@ const offScene = new THREE.Scene(), offCam = new THREE.PerspectiveCamera(34, 2, 
 const viewMat = new THREE.ShaderMaterial({
   transparent: true, blending: THREE.CustomBlending,
   blendSrc: THREE.OneFactor, blendDst: THREE.OneMinusSrcAlphaFactor, blendSrcAlpha: THREE.OneFactor, blendDstAlpha: THREE.OneMinusSrcAlphaFactor,
-  uniforms: { map: { value: null }, sunDir: { value: new THREE.Vector3(-0.45, 0.75, 0.4).normalize() } },
+  uniforms: { map: { value: null }, vivid: { value: 0 }, sunDir: { value: new THREE.Vector3(-0.45, 0.75, 0.4).normalize() } },
   vertexShader: `varying vec2 vUv; varying vec3 vN; varying float vDepth;
     void main(){ vUv = uv; vN = normalize(mat3(modelMatrix)*normal); vec4 p = modelViewMatrix*vec4(position,1.); vDepth = -p.z; gl_Position = projectionMatrix*p; }`,
-  fragmentShader: `uniform sampler2D map; uniform vec3 sunDir; varying vec2 vUv; varying vec3 vN; varying float vDepth;
+  fragmentShader: `uniform sampler2D map; uniform vec3 sunDir; uniform float vivid; varying vec2 vUv; varying vec3 vN; varying float vDepth;
     void main(){
       vec3 c = texture2D(map, vUv).rgb;
-      c *= 0.8 + 0.45 * max(0.0, dot(normalize(vN), sunDir));
+      // vivid: stronger sun and shade, richer colour, less haze, so the land looks real
+      float sh = max(0.0, dot(normalize(vN), sunDir));
+      c *= mix(0.8 + 0.45 * sh, 0.62 + 0.7 * sh, vivid);
+      float l = dot(c, vec3(0.299, 0.587, 0.114));
+      c = mix(c, mix(vec3(l), c, 1.3), vivid);
       float r = length(vUv - 0.5) * 2.0;
-      float a = 1.0 - smoothstep(0.6, 0.98, r);
-      c = mix(c, vec3(0.78, 0.82, 0.86), smoothstep(1.2, 2.3, vDepth) * 0.45);
+      float a = 1.0 - smoothstep(mix(0.6, 0.78, vivid), 0.98, r);
+      c = mix(c, vec3(0.78, 0.82, 0.86), smoothstep(1.2, 2.3, vDepth) * mix(0.45, 0.12, vivid));
       c = pow(max(c, 0.0), vec3(1.0 / 2.2));
       gl_FragColor = vec4(c * a, a);
     }`,
 });
 let offMesh = null; const PHOTO = { fov: 40, dist: 0.62, up: 0.16, ahead: 0.08 };
-async function renderView(p, brg, W, H, photo, tilt = 1) {
+async function renderView(p, brg, W, H, photo, tilt = 1, vivid = false) {
   const a = await loadPlaceAssets(p);
   if (offMesh) { offScene.remove(offMesh); offMesh.material.dispose(); }
-  const m = viewMat.clone(); m.uniforms.map.value = a.tex;
+  const m = viewMat.clone(); m.uniforms.map.value = a.tex; m.uniforms.vivid.value = vivid ? 1 : 0;
   offMesh = new THREE.Mesh(a.geo, m); offMesh.rotation.x = -Math.PI / 2; const zx = photo ? 1 : 1.5; offMesh.scale.z = zx; offScene.add(offMesh);
   const b = brg * D, mh = a.maxH * zx;
   offCam.aspect = W / H; offCam.fov = photo ? PHOTO.fov : 34; offCam.updateProjectionMatrix();
@@ -1408,7 +1430,7 @@ const sideWord = (b) => ["north", "northeast", "east", "southeast", "south", "so
 let ghostBusy = false;
 function queueGhosts() {
   if (ghostBusy || mode !== "look") return;
-  const want = lookItems.filter((it) => it.d && !it.hasCard && !(it.art && it.near > 0.5) && it.ghostFor !== it.d.brg && it.dv.dot(fwd) > Math.cos(Math.min(85, look.fov) * D))
+  const want = lookItems.filter((it) => it.d && !(it.art && it.near > 0.5) && it.ghostFor !== it.d.brg && it.dv.dot(fwd) > Math.cos(Math.min(85, look.fov) * D))
     .sort((a, b) => b.dv.dot(fwd) - a.dv.dot(fwd))[0];
   if (!want) return;
   ghostBusy = true;
@@ -1416,11 +1438,12 @@ function queueGhosts() {
   // every place is drawn from eye level, the way you'd see it standing in front of
   // it; only flat places (reefs, plains) get a little height so they still read
   const vm = VIEWS[want.p.id], relief = vm ? (vm.elevMax - vm.elevMin) / (vm.km * 1000) : 0.05;
-  renderView(want.p, brg, 512, 256, false, Math.max(0.08, Math.min(0.5, 0.5 - relief * 6))).then((cv) => {
+  renderView(want.p, brg, 1024, 512, false, Math.max(0.35, Math.min(0.7, 0.7 - relief * 5)), true).then((cv) => {
     want.ghostFor = brg;
     if (!want.ghostTex) {
       want.ghostTex = new THREE.CanvasTexture(cv); want.ghostTex.encoding = THREE.sRGBEncoding;
-      want.ghostMat = new THREE.MeshBasicMaterial({ map: want.ghostTex, transparent: true, depthWrite: false, opacity: 0, color: 0xe6eef5 });
+      want.ghostTex.anisotropy = 4;
+      want.ghostMat = new THREE.MeshBasicMaterial({ map: want.ghostTex, transparent: true, depthWrite: false, opacity: 0, color: 0xffffff });
       const gm = new THREE.Mesh(new THREE.PlaneGeometry(1, 0.5), want.ghostMat); gm.position.y = -0.06; gm.renderOrder = 0; want.holder.add(gm);
     } else { want.ghostTex.image = cv; want.ghostTex.needsUpdate = true; }
   }).catch(() => { want.ghostFor = brg; }).finally(() => { ghostBusy = false; });
@@ -1483,7 +1506,9 @@ async function buildGallery(p, brg) {
 // ---------- phone motion and camera ----------
 // Turns the view with the phone and shows the camera behind it. Browsers only
 // allow this on a normal website or app; inside this preview both are refused.
-const motion = { on: false, got: false, abs: false, q: new THREE.Quaternion(), off: null };
+const motion = { on: false, got: false, abs: false, q: new THREE.Quaternion(), off: null, wait: 0, sx: 0, sy: 0, t0: 0 };
+// add ?debug to the address to see the raw sensor numbers on screen
+const DEBUG = /debug/.test(location.search) ? Object.assign(document.body.appendChild(document.createElement("pre")), { style: "position:fixed;left:8px;top:140px;z-index:30;margin:0;padding:6px 8px;font:12px/1.4 ui-monospace,monospace;background:rgba(0,0,0,.7);color:#fff;border-radius:6px;pointer-events:none" }) : null;
 function toast(t, ms = 6000) { const el = $("toast"); el.textContent = t; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => (el.hidden = true), ms); }
 // The phone's full rotation (heading, tilt and roll) becomes the camera's rotation,
 // the way SkyView does it. The gyro gives smooth motion; the compass only slowly
@@ -1498,13 +1523,20 @@ function onOrient(e) {
     // heading says where north really is. Keep a slowly-averaged correction.
     const want = (360 - e.webkitCompassHeading - e.alpha + 720) % 360;
     const acc = typeof e.webkitCompassAccuracy === "number" ? e.webkitCompassAccuracy : 10;
-    // the gyro is smooth but the compass jitters by several degrees, so only
-    // nudge north slowly, and only when the compass is clearly and reliably off
-    if (motion.off === null) motion.off = want;
-    else if (acc >= 0 && acc <= 30 && Math.abs(e.beta) > 25) {
-      const diff = ((want - motion.off + 540) % 360) - 180;
-      if (Math.abs(diff) > 4) motion.off = (motion.off + diff * 0.004 + 360) % 360;
+    // The gyro is smooth and steady; the compass jumps around. North is set once
+    // from the compass, then only re-set (as one small jump, never a slow creep)
+    // when the compass has clearly disagreed for a second and a half.
+    const now = performance.now(), good = acc >= 0 && acc <= 25;
+    if (motion.off === null) { if (!good && !motion.wait) motion.wait = now; if (good || now - motion.wait > 1500) { motion.off = want; motion.sx = motion.sy = 0; motion.t0 = now; } }
+    else if (good) {
+      const k = 0.03; motion.sx = motion.sx * (1 - k) + Math.cos(want * D) * k; motion.sy = motion.sy * (1 - k) + Math.sin(want * D) * k;
+      if (now - motion.t0 > 1500 && Math.hypot(motion.sx, motion.sy) > 0.6) {
+        const avg = (Math.atan2(motion.sy, motion.sx) / D + 360) % 360, diff = ((avg - motion.off + 540) % 360) - 180;
+        if (Math.abs(diff) > 12) { motion.off = avg; motion.t0 = now; }
+      }
     }
+    if (motion.off === null) return;
+    if (DEBUG) DEBUG.textContent = `alpha ${e.alpha.toFixed(1)} beta ${e.beta.toFixed(1)} gamma ${e.gamma.toFixed(1)}\ncompass ${e.webkitCompassHeading.toFixed(1)} acc ${acc}\nnorth offset ${motion.off.toFixed(1)}`;
     alpha = e.alpha + motion.off;
   } else if (e.type === "deviceorientationabsolute" || e.absolute) {
     motion.abs = true; alpha = e.alpha;
@@ -1527,7 +1559,7 @@ async function askMotion() {
 function motionOn(ok) {
   if (!ok) { toast(window.self !== window.top ? "Moving with your phone is blocked in this preview. Open the Bisita website on your phone. For now, drag to look around." : "Motion wasn't allowed, so drag to look around. To allow it, close this tab, open the site again and tap Allow.", 10000); return; }
   if (motion.on) return;
-  motion.on = true; motion.got = false; motion.off = null; motion.abs = false;
+  motion.on = true; motion.got = false; motion.off = null; motion.wait = 0; motion.abs = false;
   addEventListener("deviceorientationabsolute", onOrient); addEventListener("deviceorientation", onOrient);
   $("motion-btn").setAttribute("aria-pressed", "true");
   setTimeout(() => { if (motion.on && !motion.got) toast("This phone isn't sending motion yet. Drag to look around."); }, 2500);
