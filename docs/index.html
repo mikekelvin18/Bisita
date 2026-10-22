@@ -717,7 +717,7 @@ lookScene.add(biomeMesh);
 // hills and round trees; "panorama" is layered mountains, a forest edge, birds
 // by day and fireflies at night. Each is one 360° picture wrapped around you.
 const SCENE_BAND = { r: 5, lo: -20, hi: 18 };
-function drawScene(style, day) {
+function drawScene(style, day, biome) {
   const W = 4096, H = 900, cv = document.createElement("canvas"); cv.width = W; cv.height = H;
   const g = cv.getContext("2d"), R = rnd(style.length * 131 + (day ? 7 : 3));
   const tLo = Math.tan(SCENE_BAND.lo * D), tHi = Math.tan(SCENE_BAND.hi * D);
@@ -755,30 +755,43 @@ function drawScene(style, day) {
     // flowers or dew in the near grass
     for (let i = 0; i < 400; i++) { const x = R() * W, y = f3(x) + 20 + R() * (H - f3(x)); g.fillStyle = day ? ["#f3e3a1", "#f1b8a8", "#ffffff"][i % 3] : "rgba(230,240,255,.25)"; g.globalAlpha = 0.5; g.beginPath(); g.arc(x, y, 1.5 + R() * 1.5, 0, 7); g.fill(); g.globalAlpha = 1; }
   } else {
-    const P = day ? { haze: "#cfe3ec", far: "#9fb4c4", mid: "#71907f", snow: "#ffffff", forest: "#2f5a3a", ground: "#3d6b45" }
-                  : { haze: "#1b2a3c", far: "#283750", mid: "#1d2a37", snow: "#9aa9c2", forest: "#0e1916", ground: "#101b17" };
-    if (day) for (let i = 0; i < 10; i++) { const x = R() * W, y = yOf(9 + R() * 8), w = 260 + R() * 300;
+    const P = day ? { haze: "#cfe3ec", far: "#9fb4c4", mid: "#71907f", snow: "#ffffff", forest: "#2f5a3a", ground: "#3d6b45", tree: "#3f6b45", mesa: "#c49a72" }
+                  : { haze: "#1b2a3c", far: "#283750", mid: "#1d2a37", snow: "#9aa9c2", forest: "#0e1916", ground: "#101b17", tree: "#121e1a", mesa: "#3a3032" };
+    if (day) for (let i = 0; i < 6; i++) { const x = R() * W, y = yOf(10 + R() * 7), w = 260 + R() * 300;
       wrap(x, (xx) => { g.fillStyle = "rgba(255,255,255,.3)"; for (const k of [1, .75, .5]) { g.beginPath(); g.ellipse(xx, y, w / 2 * k, 14 * k + 4, 0, 0, 7); g.fill(); } }); }
-    const f1 = ridge(5, 6, 70, true), f2 = ridge(17, 2.5, 46, true), f3 = ridge(29, -1, 14, false);
-    layer(f1, P.far, 0);
-    // snow on the highest far peaks
-    g.save(); g.beginPath(); g.moveTo(0, H); for (let x = 0; x <= W; x += 8) g.lineTo(x, f1(x)); g.lineTo(W, H); g.closePath(); g.clip();
-    g.fillStyle = P.snow; g.globalAlpha = day ? 0.9 : 0.5; g.fillRect(0, 0, W, yOf(10.5)); g.restore();
-    // distance haze
-    const hzG = g.createLinearGradient(0, yOf(14), 0, hz); hzG.addColorStop(0, "rgba(0,0,0,0)"); hzG.addColorStop(1, P.haze);
-    g.globalAlpha = 0.45; g.fillStyle = hzG; g.fillRect(0, yOf(14), W, hz - yOf(14)); g.globalAlpha = 1;
-    layer(f2, P.mid, 0);
-    g.globalAlpha = 0.25; g.fillStyle = P.haze; g.fillRect(0, hz - 30, W, 30); g.globalAlpha = 1;
-    // forest edge: a wall of firs on the near ground
+    const mountains = biome === "forest", mesas = biome === "desert";
+    const hazeOver = (top) => { const hzG = g.createLinearGradient(0, yOf(top), 0, hz); hzG.addColorStop(0, "rgba(0,0,0,0)"); hzG.addColorStop(1, P.haze); g.globalAlpha = 0.45; g.fillStyle = hzG; g.fillRect(0, yOf(top), W, hz - yOf(top)); g.globalAlpha = 1; };
+    if (mountains) {
+      const f1 = ridge(5, 5, 60, true), f2 = ridge(17, 2, 36, true);
+      layer(f1, P.far, 0);
+      g.save(); g.beginPath(); g.moveTo(0, H); for (let x = 0; x <= W; x += 8) g.lineTo(x, f1(x)); g.lineTo(W, H); g.closePath(); g.clip();
+      g.fillStyle = P.snow; g.globalAlpha = day ? 0.9 : 0.5; g.fillRect(0, 0, W, yOf(9.5)); g.restore();
+      hazeOver(12); layer(f2, P.mid, 0);
+    } else if (mesas) {
+      const f1 = ridge(5, 2, 40, false);
+      layer((x) => Math.max(f1(x), yOf(4.2)), P.mesa, 0); hazeOver(6);
+    } else {
+      // flat country: just a hazy line of distant woods and a gentle rise
+      const f1 = ridge(5, 0.9, 7, false);
+      layer(f1, P.far, 2); hazeOver(3);
+    }
+    g.globalAlpha = 0.25; g.fillStyle = P.haze; g.fillRect(0, hz - 20, W, 20); g.globalAlpha = 1;
+    const f3 = ridge(29, -1.2, mountains ? 10 : 5, false);
     layer(f3, P.ground, 0);
-    g.fillStyle = P.forest;
-    for (let x = 0; x < W; x += 5 + R() * 9) { const base = f3(x) + 4, h = 18 + R() * 42, w = h * (0.32 + R() * 0.1);
-      if (R() < 0.18) continue;
-      wrap(x, (xx) => { g.beginPath(); g.moveTo(xx - w / 2, base); g.lineTo(xx, base - h); g.lineTo(xx + w / 2, base); g.closePath(); g.fill(); }); }
-        if (day) { g.strokeStyle = "rgba(40,55,65,.7)"; g.lineWidth = 2; g.lineCap = "round";
-      for (let i = 0; i < 9; i++) { const x = R() * W, y = yOf(8 + R() * 7), s = 6 + R() * 5; g.beginPath(); g.moveTo(x - s, y); g.quadraticCurveTo(x - s / 2, y - s * 0.6, x, y); g.quadraticCurveTo(x + s / 2, y - s * 0.6, x + s, y); g.stroke(); } }
+    if (mountains) {
+      g.fillStyle = P.forest;
+      for (let x = 0; x < W; x += 9 + R() * 16) { if (R() < 0.3) continue; const base = f3(x) + 4, h = 16 + R() * 34, w = h * (0.32 + R() * 0.1);
+        wrap(x, (xx) => { g.beginPath(); g.moveTo(xx - w / 2, base); g.lineTo(xx, base - h); g.lineTo(xx + w / 2, base); g.closePath(); g.fill(); }); }
+    } else if (!mesas) {
+      // a few clumps of broadleaf trees, with open field between them
+      for (let c = 0; c < 9; c++) { const cx = R() * W, n = 2 + Math.floor(R() * 4);
+        for (let i = 0; i < n; i++) { const x = cx + (R() - 0.5) * 120, s2 = 14 + R() * 16, base = f3(x) + 4;
+          wrap(x, (xx) => { g.fillStyle = P.tree; for (const [dx, dy, r] of [[0, -1.0, .5], [-.35, -.7, .38], [.35, -.72, .4]]) { g.beginPath(); g.arc(xx + dx * s2, base + dy * s2, r * s2, 0, 7); g.fill(); } g.fillRect(xx - 1.5, base - s2 * 0.4, 3, s2 * 0.4); }); } }
+    }
+    if (day) { g.strokeStyle = "rgba(40,55,65,.6)"; g.lineWidth = 2; g.lineCap = "round";
+      for (let i = 0; i < 4; i++) { const x = R() * W, y = yOf(8 + R() * 7), s2 = 6 + R() * 5; g.beginPath(); g.moveTo(x - s2, y); g.quadraticCurveTo(x - s2 / 2, y - s2 * 0.6, x, y); g.quadraticCurveTo(x + s2 / 2, y - s2 * 0.6, x + s2, y); g.stroke(); } }
     else { g.save(); g.shadowColor = "rgba(247,226,122,.9)"; g.shadowBlur = 10; g.fillStyle = "#f7e27a";
-      for (let i = 0; i < 90; i++) { const x = R() * W, y = f3(x) + 12 + R() * 120; g.globalAlpha = 0.4 + R() * 0.5; g.beginPath(); g.arc(x, y, 1.6 + R() * 1.4, 0, 7); g.fill(); } g.restore(); g.globalAlpha = 1; }
+      for (let i = 0; i < 50; i++) { const x = R() * W, y = f3(x) + 14 + R() * 120; g.globalAlpha = 0.4 + R() * 0.5; g.beginPath(); g.arc(x, y, 1.6 + R() * 1.4, 0, 7); g.fill(); } g.restore(); g.globalAlpha = 1; }
   }
   // melt the bottom into the ground below
   g.globalCompositeOperation = "destination-in";
@@ -796,8 +809,9 @@ lookScene.add(sceneMesh);
 const sceneCache = {};
 function applyScene() {
   if (scenery === "minimal") { sceneMesh.visible = false; return; }
-  const key = scenery + (theme === "day" ? "-day" : "-night");
-  if (!sceneCache[key]) { const t = new THREE.CanvasTexture(drawScene(scenery, theme === "day")); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4; sceneCache[key] = t; }
+  const biome = (here && here[3]) || "prairie";
+  const key = scenery + (theme === "day" ? "-day-" : "-night-") + biome;
+  if (!sceneCache[key]) { const t = new THREE.CanvasTexture(drawScene(scenery, theme === "day", biome)); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4; sceneCache[key] = t; }
   sceneMat.map = sceneCache[key]; sceneMat.needsUpdate = true; sceneMesh.visible = true;
 }
 const BIOME_WORDS = { prairie: "prairie grass", savanna: "savanna", desert: "desert", forest: "forest", tropical: "palms", coast: "coast", city: "city" };
@@ -875,6 +889,19 @@ const LINE_ART = {
   },
 };
 const lookItems = [];
+const CARD_W = 512, CARD_H = 452;
+function drawCard(im) {
+  const cv = document.createElement("canvas"); cv.width = CARD_W; cv.height = CARD_H;
+  const g = cv.getContext("2d"), pw = CARD_W - 16, ph = 360, x0 = 8, y0 = 8, r = 30;
+  const rr = (x, y, w, h, r) => { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); };
+  // stem down to the exact direction
+  g.fillStyle = "#e9e3d6"; g.beginPath(); g.moveTo(CARD_W / 2 - 22, y0 + ph); g.lineTo(CARD_W / 2, CARD_H - 4); g.lineTo(CARD_W / 2 + 22, y0 + ph); g.closePath(); g.fill();
+  rr(x0 - 6, y0 - 6, pw + 12, ph + 12, r + 6); g.fill();
+  g.save(); rr(x0, y0, pw, ph, r); g.clip();
+  const s = Math.max(pw / im.width, ph / im.height), w = im.width * s, h = im.height * s;
+  g.drawImage(im, x0 + (pw - w) / 2, y0 + (ph - h) / 2, w, h); g.restore();
+  return cv;
+}
 function buildLookItem(p) {
   const holder = new THREE.Group();
   const item = { p, holder, d: null, art: !!LINE_ART[p.id], mat: null, reveal: 0, revealed: false };
@@ -907,8 +934,13 @@ function buildLookItem(p) {
       drawSil(item);
     });
   }
-  const hit = new THREE.Mesh(new THREE.PlaneGeometry(1, 0.9), new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false }));
-  hit.userData.item = item; holder.add(hit); item.hit = hit;
+  // the real photo of the place, as a solid postcard on a stem that points to its spot
+  const CW = 0.46, CH = CW * CARD_H / CARD_W;
+  item.cardMat = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, opacity: 0 });
+  const card = new THREE.Mesh(new THREE.PlaneGeometry(CW, CH), item.cardMat); card.position.y = CH / 2; card.renderOrder = 2; holder.add(card);
+  loadImg(`places/${p.id}-card.jpg`).then((im) => { const t = new THREE.CanvasTexture(drawCard(im)); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4; item.cardMat.map = t; item.cardMat.needsUpdate = true; item.hasCard = true; }).catch(() => {});
+  const hit = new THREE.Mesh(new THREE.PlaneGeometry(CW, CH), new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false }));
+  hit.position.y = CH / 2; hit.userData.item = item; holder.add(hit); item.hit = hit;
   const label = document.createElement("div"); label.className = "olabel"; label.setAttribute("aria-hidden", "true");
   label.innerHTML = "<b></b><small></small>"; label.querySelector("b").textContent = p.name;
   lookWrap.appendChild(label); item.label = label;
@@ -969,7 +1001,7 @@ function drawSil(it) {
 // the distance. Aiming at a layer pulls it into focus.
 // rough width of each built landmark, so up close it shows at its real size
 const BUILT_KM = { "eiffel-tower": 0.33, "taj-mahal": 0.3, giza: 1.2, petra: 0.08, "angkor-wat": 1.5, "great-wall": 2 };
-const AR_GROW = 1.8; // in AR, places draw bigger so they hold up over a busy camera picture
+const AR_GROW = 1.4; // in AR, places draw bigger so they hold up over a busy camera picture
 function layoutLook() {
   const its = lookItems.slice().sort((a, b) => a.d.km - b.d.km);
   for (const it of its) {
@@ -1075,7 +1107,7 @@ function setHere(c) {
   dome.material.uniforms.uE.value.set(-Math.sin(lo), Math.cos(lo), 0);
   dome.material.uniforms.uN.value.set(-Math.sin(la) * Math.cos(lo), -Math.sin(la) * Math.sin(lo), Math.cos(la));
   dome.material.uniforms.uU.value.set(Math.cos(la) * Math.cos(lo), Math.cos(la) * Math.sin(lo), Math.sin(la));
-  setBiome(c[3] || "prairie");
+  setBiome(c[3] || "prairie"); applyScene();
 }
 function aimNearest() {
   const n = lookItems.reduce((a, b) => (b.d.km < a.d.km ? b : a));
@@ -1125,7 +1157,7 @@ function updateLook(w, h) {
     let show = it === active && f > Math.cos(Math.min(80, look.fov * 0.75) * D);
     if (show) {
       const s = it.holder.scale.x;
-      const below = new THREE.Vector3(0, (it.art ? -0.4 : -0.17) * s, 0).applyQuaternion(it.holder.quaternion).add(it.holder.position).project(camera);
+      const below = new THREE.Vector3(0, (it.hasCard ? -0.02 : it.art ? -0.4 : -0.17) * s, 0).applyQuaternion(it.holder.quaternion).add(it.holder.position).project(camera);
       const x = (below.x * 0.5 + 0.5) * w, y = (-below.y * 0.5 + 0.5) * h + 14;
       const r = [x - 80, y - 4, x + 80, y + 40];
       show = below.z < 1 && !boxes.some((q) => !(r[2] < q[0] || r[0] > q[2] || r[3] < q[1] || r[1] > q[3]));
@@ -1149,9 +1181,11 @@ function updateLook(w, h) {
     it.tint = (it.tint ?? tint) + (tint - (it.tint ?? tint)) * k;
     it.op = (it.op ?? op) + (op - (it.op ?? op)) * k;
     const col = new THREE.Color().copy(WHITE).lerp(HAZE, it.tint);
-    if (it.ghostMat) { it.ghostMat.opacity = it.op * (ar ? 1 : it.art ? 0.5 : 0.95); it.ghostMat.color.copy(col); }
-    if (it.silMat) { it.silMat.opacity = it.ghostMat ? 0 : it.op; it.silMat.color.copy(col); }
-    if (it.art) { it.mat.opacity = Math.min(1, it.op + it.reveal); it.mat.color.copy(col); }
+    const cardOn = !!it.hasCard;
+    if (cardOn) { it.cardMat.opacity = Math.max(it === best ? 1 : 0.55, it.op); it.cardMat.color.copy(new THREE.Color().copy(WHITE).lerp(HAZE, it.tint * 0.35)).multiplyScalar(theme === "night" && !ar ? 0.82 : 1); }
+    if (it.ghostMat) { it.ghostMat.opacity = cardOn ? 0 : it.op * (ar ? 1 : it.art ? 0.5 : 0.95); it.ghostMat.color.copy(col); }
+    if (it.silMat) { it.silMat.opacity = cardOn || it.ghostMat ? 0 : it.op; it.silMat.color.copy(col); }
+    if (it.art) { it.mat.opacity = cardOn ? 0 : Math.min(1, it.op + it.reveal); it.mat.color.copy(col); }
     const target = it.revealed ? 1 : 0;
     it.reveal += (target - it.reveal) * k;
   }
@@ -1380,7 +1414,7 @@ const sideWord = (b) => ["north", "northeast", "east", "southeast", "south", "so
 let ghostBusy = false;
 function queueGhosts() {
   if (ghostBusy || mode !== "look") return;
-  const want = lookItems.filter((it) => it.d && !(it.art && it.near > 0.5) && it.ghostFor !== it.d.brg && it.dv.dot(fwd) > Math.cos(Math.min(85, look.fov) * D))
+  const want = lookItems.filter((it) => it.d && !it.hasCard && !(it.art && it.near > 0.5) && it.ghostFor !== it.d.brg && it.dv.dot(fwd) > Math.cos(Math.min(85, look.fov) * D))
     .sort((a, b) => b.dv.dot(fwd) - a.dv.dot(fwd))[0];
   if (!want) return;
   ghostBusy = true;
@@ -1469,10 +1503,13 @@ function onOrient(e) {
     // iPhone: alpha is relative to wherever the phone pointed at start; the compass
     // heading says where north really is. Keep a slowly-averaged correction.
     const want = (360 - e.webkitCompassHeading - e.alpha + 720) % 360;
+    const acc = typeof e.webkitCompassAccuracy === "number" ? e.webkitCompassAccuracy : 10;
+    // the gyro is smooth but the compass jitters by several degrees, so only
+    // nudge north slowly, and only when the compass is clearly and reliably off
     if (motion.off === null) motion.off = want;
-    else {
+    else if (acc >= 0 && acc <= 30 && Math.abs(e.beta) > 25) {
       const diff = ((want - motion.off + 540) % 360) - 180;
-      motion.off = (motion.off + diff * (Math.abs(diff) > 25 ? 0.02 : 0.06) + 360) % 360;
+      if (Math.abs(diff) > 4) motion.off = (motion.off + diff * 0.004 + 360) % 360;
     }
     alpha = e.alpha + motion.off;
   } else if (e.type === "deviceorientationabsolute" || e.absolute) {

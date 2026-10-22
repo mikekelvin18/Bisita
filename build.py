@@ -6,6 +6,12 @@ for f in glob.glob(B+'/places/*.json'):
     d=json.load(open(f)); views[d['id']]={k:d[k] for k in ('km','elevMin','elevMax','date','bbox')}
     for suf in ('-sat.jpg','-dem.png'): shutil.copy(B+'/places/'+d['id']+suf, D+'/places/')
 for f in glob.glob(B+'/thumbs/*.jpg'): shutil.copy(f, D+'/places/')
+# card photos for the look-around view: the first real photo, 4:3, 640 px wide
+from PIL import Image, ImageOps
+for pid, ph in (json.load(open(B+'/photos.json')).items() if os.path.exists(B+'/photos.json') else []):
+    if not ph: continue
+    im = ImageOps.fit(Image.open(B+'/'+ph[0]['src']).convert('RGB'), (640, 480), Image.LANCZOS)
+    im.save(D+'/places/'+pid+'-card.jpg', quality=82, optimize=True, progressive=True)
 for f in ('three.min.js','places.js','earth.jpg','earth-bump.jpg','earth-land.png'): shutil.copy(B+'/site/'+f, D)
 photos=json.load(open(B+'/photos.json')) if os.path.exists(B+'/photos.json') else {}
 for ph in photos.values():
