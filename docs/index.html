@@ -238,6 +238,17 @@ h3 { font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: v
 .related button { min-height: 44px; padding: 0 14px; border-radius: 22px; border: 1px solid var(--line); background: none; cursor: pointer; font-size: 15px; }
 .related button:hover { border-color: var(--sand); }
 .photos { border: 1px dashed var(--line); border-radius: 12px; padding: 14px 16px; color: var(--mist); font-size: 15px; }
+.wild { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.wild li { padding: 10px 14px; border: 1px solid var(--line); border-radius: 12px; }
+.wild b { display: block; font-size: 16px; font-weight: 600; color: var(--stone); }
+.wild span { display: block; font-size: 14px; color: var(--mist); line-height: 1.4; margin-top: 2px; }
+.links { display: flex; flex-direction: column; gap: 8px; margin-top: 22px; }
+.links a { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 48px; padding: 0 16px; border-radius: 24px; border: 1px solid var(--sand); color: var(--stone); text-decoration: none; font-weight: 600; font-size: 15px; }
+.links a::after { content: "\2197"; color: var(--sand); }
+.sources { margin-top: 20px; font-size: 13px; color: var(--mist); line-height: 1.5; }
+.sources b { display: block; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--mist); margin-bottom: 4px; }
+.sources ol { margin: 0; padding-left: 18px; } .sources li { margin: 2px 0; }
+.sources a { color: var(--mist); }
 .credit { font-size: 13px; color: var(--mist); margin-top: 22px; line-height: 1.5; }
 a { color: var(--sea); }
 
@@ -358,10 +369,14 @@ a { color: var(--sea); }
     <details><summary>People and history</summary><p id="p-people"></p></details>
     <h3>Quick facts</h3>
     <ul class="facts" id="p-facts"></ul>
+    <h3 id="p-wild-h">Animals to look for</h3>
+    <ul class="wild" id="p-wild"></ul>
     <h3>Photos from visitors</h3>
     <div class="photos">Visitor photos are coming once accounts and safe uploads are ready. Nothing here is a stand-in.</div>
     <h3>Explore more like this</h3>
     <div class="related" id="p-related"></div>
+    <div class="links" id="p-links"></div>
+    <div class="sources" id="p-sources"></div>
     <p class="credit" id="p-credit"></p>
   </div>
 </aside>
@@ -1779,6 +1794,18 @@ function fillPanel(p) {
   $("p-people").textContent = p.people;
   $("p-facts").innerHTML = "";
   p.facts.forEach((f) => { const li = document.createElement("li"); li.textContent = f; $("p-facts").appendChild(li); });
+  // wildlife: animals to look for, room to grow later
+  const wild = p.wildlife || [];
+  $("p-wild-h").hidden = $("p-wild").hidden = !wild.length; $("p-wild").innerHTML = "";
+  wild.forEach((w) => { const li = document.createElement("li"); li.innerHTML = "<b></b><span></span>"; li.querySelector("b").textContent = w.name; li.querySelector("span").textContent = w.note; $("p-wild").appendChild(li); });
+  // the official site(s), then where every fact came from
+  const links = $("p-links"); links.innerHTML = "";
+  (p.official || []).forEach((o) => links.appendChild(Object.assign(document.createElement("a"), { href: o.url, target: "_blank", rel: "noopener", textContent: o.name })));
+  const src = $("p-sources"); src.innerHTML = "";
+  if (p.sources && p.sources.length) {
+    src.innerHTML = "<b>Sources</b><ol></ol>";
+    p.sources.forEach((x) => { const li = document.createElement("li"); li.appendChild(Object.assign(document.createElement("a"), { href: x.url, target: "_blank", rel: "noopener", textContent: x.name })); src.querySelector("ol").appendChild(li); });
+  } else src.textContent = "These facts are still being checked against official sources.";
   const rel = $("p-related"); rel.innerHTML = "";
   PLACES.filter((x) => x.id !== p.id && (x.cat === p.cat || x.region === p.region)).sort((a, b) => (b.cat === p.cat) - (a.cat === p.cat)).slice(0, 5).forEach((x) => {
     const b = document.createElement("button"); b.type = "button"; b.textContent = x.name; b.addEventListener("click", () => visit(x)); rel.appendChild(b);
@@ -1786,8 +1813,7 @@ function fillPanel(p) {
   const date = new Date(meta.date + "T12:00:00Z").toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
   $("p-credit").innerHTML = "";
   $("p-credit").append(
-    `Flyover: ${p.view} Real satellite image from ${date} (contains modified Copernicus Sentinel-2 data, ${meta.date.slice(0,4)}), draped over real elevation data. Area shown is about ${meta.km} × ${meta.km} km. ${exagFor(meta) > 1 ? `Heights are exaggerated ${exagFor(meta)}× so the shape reads clearly.` : "Heights are shown at true scale."} Elevation: Terrain Tiles on AWS (SRTM, USGS and other sources). `,
-    Object.assign(document.createElement("a"), { href: p.wiki, target: "_blank", rel: "noopener", textContent: "Read more on Wikipedia" }), "."
+    `Flyover: ${p.view} Real satellite image from ${date} (contains modified Copernicus Sentinel-2 data, ${meta.date.slice(0,4)}), draped over real elevation data. Area shown is about ${meta.km} × ${meta.km} km. ${exagFor(meta) > 1 ? `Heights are exaggerated ${exagFor(meta)}× so the shape reads clearly.` : "Heights are shown at true scale."} Elevation: Terrain Tiles on AWS (SRTM, USGS and other sources).`
   );
   const panel = $("panel");
   panel.classList.add("open"); panel.classList.remove("tall"); panel.setAttribute("aria-hidden", "false");
