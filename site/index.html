@@ -1,0 +1,1501 @@
+<title>Bisita</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: the globe fills the screen; a single panel (right side on desktop,
+   bottom sheet on phones) carries everything you read. One dark world on purpose. */
+:root {
+  --night: #081113;        /* space behind the globe */
+  --deep: #0f1d1f;         /* panel ground, deep forest-ocean */
+  --raise: #172a2c;        /* raised controls */
+  --line: #2a4245;         /* hairlines */
+  --stone: #e9e3d6;        /* main text, pale granite */
+  --mist: #a9b7b2;         /* secondary text */
+  --sand: #e3ad6c;         /* accent, sandstone at sunset */
+  --sea: #5fa6b4;          /* links and focus */
+  --display: "Young Serif", Georgia, "Times New Roman", serif;
+  --body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { background: var(--night); color: var(--stone); font-family: var(--body); font-size: 17px; line-height: 1.5; overflow: hidden; }
+* { box-sizing: border-box; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--sea); outline-offset: 2px; }
+
+#stage { position: fixed; inset: 0; touch-action: none; z-index: 1; }
+#stage canvas { display: block; width: 100%; height: 100%; }
+#sky-grad { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0; transition: opacity .9s ease;
+  background: linear-gradient(180deg, #31506a 0%, #6d8ea0 38%, #c9c2ae 62%, #e9dcc4 100%); }
+body.in-place #sky-grad { opacity: 1; }
+#fade { position: fixed; inset: 0; z-index: 8; background: var(--night); opacity: 0; pointer-events: none; transition: opacity .45s ease; }
+#fade.on { opacity: 1; }
+
+/* top bar */
+.bar { position: fixed; top: 0; left: 0; right: 0; display: flex; align-items: center; gap: 12px; z-index: 5;
+  padding-top: calc(12px + env(safe-area-inset-top, 0px)); padding-bottom: 12px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  pointer-events: none; }
+.bar > * { pointer-events: auto; }
+.brand { font-family: var(--display); font-size: 26px; letter-spacing: .01em; text-shadow: 0 1px 12px rgba(0,0,0,.6); }
+.brand small { display: block; font-family: var(--body); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--mist); }
+.btn { min-height: 48px; padding: 0 18px; border-radius: 24px; border: 1px solid var(--line); background: rgba(15,29,31,.86);
+  display: inline-flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 600; font-size: 16px; backdrop-filter: blur(6px); }
+.btn:hover { border-color: var(--sea); }
+.btn svg { width: 20px; height: 20px; flex: none; }
+.btn.primary { background: var(--sand); color: #1d1408; border-color: var(--sand); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 24px; background: rgba(15,29,31,.86); padding: 3px; margin-right: auto; margin-left: 8px; backdrop-filter: blur(6px); }
+.seg button { min-height: 42px; padding: 0 14px; border: 0; border-radius: 21px; background: none; cursor: pointer; font-weight: 600; font-size: 15px; color: var(--mist); }
+.seg button[aria-pressed="true"] { background: var(--stone); color: var(--night); }
+body.in-place .seg { display: none; }
+body.in-place .brand { margin-right: auto; }
+@media (max-width: 620px) {
+  .brand small { display: none; } .brand { font-size: 22px; margin-right: auto; } .btn .lbl { display: none; } .btn { padding: 0 13px; }
+  .seg { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); margin: 0; }
+  body.look #where-btn .lbl { display: inline; }
+  #hint { bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
+  body:not(.look):not(.in-place) .chips { bottom: 64px; }
+}
+#back { display: none; }
+body.in-place #back { display: inline-flex; }
+body.in-place #find { display: none; }
+
+/* category chips */
+.chips { position: fixed; left: 0; right: 0; bottom: 0; z-index: 4; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none;
+  padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px)); padding-top: 8px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.chips::-webkit-scrollbar { display: none; }
+.chip { flex: none; min-height: 44px; padding: 0 16px; border-radius: 22px; border: 1px solid var(--line); background: rgba(15,29,31,.86);
+  cursor: pointer; font-size: 15px; font-weight: 500; }
+.chip[aria-pressed="true"] { background: var(--stone); color: var(--night); border-color: var(--stone); }
+body.in-place .chips, body.look .chips { display: none; }
+#look { position: fixed; inset: 0; pointer-events: none; z-index: 3; display: none; overflow: hidden; }
+body.look #look { display: block; }
+.card { position: absolute; left: 0; top: 0; pointer-events: auto; border: 0; background: none; padding: 0; cursor: pointer; color: var(--stone);
+  display: flex; flex-direction: column; align-items: center; gap: 6px; width: 132px; margin-left: -66px; margin-top: -40px; text-align: center; }
+.card .thumb { width: 80px; height: 80px; border-radius: 50%; overflow: hidden; border: 2px solid var(--sand); box-shadow: 0 0 0 4px rgba(227,173,108,.2), 0 6px 24px rgba(0,0,0,.6); background: var(--deep); flex: none; transition: transform .15s; }
+.card .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.card b { font-size: 15px; font-weight: 600; line-height: 1.2; text-shadow: 0 1px 3px #000, 0 0 12px rgba(0,0,0,.9); }
+.card small { font-size: 13px; color: var(--stone); opacity: .85; text-shadow: 0 1px 3px #000; font-variant-numeric: tabular-nums; }
+.card:hover .thumb, .card:focus-visible .thumb { transform: scale(1.08); }
+.card.compact { width: 44px; height: 44px; margin: -22px 0 0 -22px; }
+.card.compact .thumb { width: 14px; height: 14px; border-width: 0; background: var(--sand); box-shadow: 0 0 0 3px rgba(227,173,108,.28), 0 0 14px rgba(227,173,108,.9); margin-top: 15px; }
+.card.compact .thumb img, .card.compact b, .card.compact small { display: none; }
+.card[hidden] { display: none; }
+.compass { position: absolute; left: 0; top: 0; font-weight: 700; font-size: 15px; letter-spacing: .1em; color: var(--stone); transform: translate(-50%, -140%); text-shadow: 0 1px 4px #000; }
+.compass.minor { font-size: 12px; color: var(--mist); font-weight: 600; }
+.nadir { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); font-size: 14px; color: var(--mist); text-align: center; width: 220px; text-shadow: 0 1px 4px #000; }
+.olabel { position: absolute; left: 0; top: 0; width: 160px; margin-left: -80px; text-align: center; pointer-events: none; text-shadow: 0 1px 3px #000, 0 0 10px rgba(0,0,0,.9); }
+.olabel b { display: block; font-size: 14px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+.olabel small { display: block; font-size: 12px; color: var(--mist); font-variant-numeric: tabular-nums; }
+.olabel[hidden] { display: none; }
+#reticle { position: fixed; left: 50%; top: 50%; width: 76px; height: 76px; margin: -38px 0 0 -38px; border: 1.5px solid rgba(233,227,214,.55); border-radius: 50%; pointer-events: none; z-index: 3; display: none; }
+#reticle::after { content: ""; position: absolute; left: 50%; top: 50%; width: 4px; height: 4px; margin: -2px; border-radius: 50%; background: rgba(233,227,214,.8); }
+body.look #reticle { display: block; }
+body.look #hint { top: calc(84px + env(safe-area-inset-top, 0px)); bottom: auto; }
+body.look::after { content: ""; position: fixed; left: 0; right: 0; bottom: 0; height: 220px; z-index: 3; pointer-events: none; background: linear-gradient(to top, rgba(8,17,19,.82), rgba(8,17,19,0)); }
+#focus { position: fixed; z-index: 4; left: max(16px, env(safe-area-inset-left, 0px)); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); display: none; align-items: flex-end; gap: 14px; max-width: calc(100% - 32px); }
+body.look #focus:not([hidden]) { display: flex; }
+#f-name { font-family: var(--display); font-size: 30px; line-height: 1.05; margin: 0; text-shadow: 0 2px 12px rgba(0,0,0,.8); }
+#f-meta { margin: 4px 0 0; color: var(--mist); font-size: 14px; letter-spacing: .04em; text-transform: uppercase; text-shadow: 0 1px 6px #000; }
+@media (max-width: 620px) { #focus { bottom: calc(80px + env(safe-area-inset-bottom, 0px)); } #f-name { font-size: 26px; } }
+[hidden] { display: none !important; }
+#f-layers { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; max-width: min(560px, calc(100vw - 150px)); }
+@media (max-width: 620px) { #f-layers { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; } .layer { flex: none; } }
+.btn { white-space: nowrap; }
+.layer { display: inline-flex; align-items: baseline; gap: 6px; min-height: 36px; padding: 6px 12px; border-radius: 999px; border: 1px solid rgba(233,227,214,.25); background: rgba(8,17,19,.55); color: var(--stone); font: inherit; font-size: 14px; cursor: pointer; backdrop-filter: blur(6px); }
+.layer span { color: var(--mist); font-size: 12px; font-variant-numeric: tabular-nums; }
+.layer[aria-pressed="true"] { background: var(--stone); color: #13201f; border-color: var(--stone); }
+.layer[aria-pressed="true"] span { color: #3c4a48; }
+#edge { position: fixed; z-index: 3; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; pointer-events: none; text-shadow: 0 1px 4px #000; }
+body:not(.look) #edge, body.in-place #edge { display: none; }
+#edge i { font-style: normal; font-size: 34px; line-height: 1; color: var(--sand); display: block; }
+#edge b { font-size: 14px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+#edge small { font-size: 12px; color: var(--mist); }
+#start { position: fixed; inset: 0; z-index: 11; display: grid; place-items: end center; padding: 16px; background: linear-gradient(to top, rgba(8,17,19,.92), rgba(8,17,19,.35)); }
+.start-card { width: min(460px, 100%); background: var(--deep); border: 1px solid var(--line); border-radius: 20px; padding: 22px 20px 18px; margin-bottom: env(safe-area-inset-bottom, 0px); display: grid; gap: 10px; }
+.start-card h2 { font-family: var(--display); font-weight: 400; font-size: 26px; margin: 0; }
+.start-card p { margin: 0 0 6px; color: var(--mist); font-size: 16px; line-height: 1.45; }
+.start-card .btn { justify-content: center; width: 100%; min-height: 50px; font-size: 16px; }
+#motion-btn { display: none; }
+body.look #motion-btn { display: inline-flex; }
+#motion-btn[aria-pressed="true"] { background: var(--sand); color: #1d1408; border-color: var(--sand); }
+#cam { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; display: none; }
+body.camera.look #cam { display: block; }
+#toast { position: fixed; left: 50%; transform: translateX(-50%); top: calc(84px + env(safe-area-inset-top, 0px)); z-index: 12; width: min(520px, calc(100% - 32px)); background: var(--deep); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin: 0; font-size: 15px; box-shadow: 0 10px 30px rgba(0,0,0,.5); }
+#gallery { position: fixed; z-index: 2; left: 0; top: 0; right: 0; bottom: calc(46% - 18px); display: none; background: var(--night); overflow: hidden; }
+body.in-place.gallery #gallery { display: block; }
+@media (min-width: 900px) { #gallery { bottom: 0; right: calc(452px + env(safe-area-inset-right, 0px)); } }
+#g-img { position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; object-fit: cover; }
+#gallery::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 160px; background: linear-gradient(to top, rgba(8,17,19,.85), rgba(8,17,19,0)); pointer-events: none; }
+#g-cap a { color: var(--sand); }
+#g-cap { position: absolute; z-index: 1; left: max(16px, env(safe-area-inset-left, 0px)); right: 140px; bottom: 92px; margin: 0; font-size: 13px; color: var(--stone); text-shadow: 0 1px 4px #000; }
+#g-thumbs { position: absolute; z-index: 1; left: max(16px, env(safe-area-inset-left, 0px)); right: 136px; bottom: 16px; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+#g-thumbs button { flex: none; width: 64px; height: 64px; padding: 0; border-radius: 10px; overflow: hidden; border: 2px solid rgba(233,227,214,.35); background: var(--deep); cursor: pointer; }
+#g-thumbs button[aria-pressed="true"] { border-color: var(--sand); }
+#g-thumbs img { width: 100%; height: 100%; object-fit: cover; display: block; }
+#g-3d { position: fixed; z-index: 5; width: 104px; height: 104px; border-radius: 14px; border: 2px solid var(--sand); background: var(--deep) center / cover no-repeat; cursor: pointer; display: none; align-items: flex-end; justify-content: center; padding: 0 0 8px; box-shadow: 0 8px 24px rgba(0,0,0,.5); right: 16px; bottom: calc(46% + 12px); }
+#g-3d span { font-size: 13px; font-weight: 700; background: rgba(8,17,19,.8); padding: 3px 8px; border-radius: 8px; }
+body.in-place #g-3d { display: flex; }
+@media (min-width: 900px) { #g-3d { right: calc(468px + env(safe-area-inset-right, 0px)); bottom: 16px; } }
+@media (max-width: 899px) { body.in-place.panel-tall #g-3d { display: none; } }
+body.gallery #pause { display: none; }
+#where-btn { display: none; }
+body.look #where-btn { display: inline-flex; }
+body.in-place #where-btn { display: none; }
+#cities .res b { font-size: 18px; }
+
+/* pins */
+#pins { position: fixed; inset: 0; pointer-events: none; z-index: 3; }
+.pin { position: absolute; left: 0; top: 0; pointer-events: auto; border: 0; background: none; padding: 0; cursor: pointer;
+  width: 44px; height: 44px; margin: -22px 0 0 -22px; display: grid; place-items: center; }
+.pin i { width: 12px; height: 12px; border-radius: 50%; background: var(--sand); box-shadow: 0 0 0 3px rgba(227,173,108,.28), 0 0 14px rgba(227,173,108,.9); transition: transform .15s; }
+.pin:hover i, .pin:focus-visible i { transform: scale(1.5); }
+.pin span { position: absolute; left: 36px; top: 50%; transform: translateY(-50%); white-space: nowrap; font-size: 15px; font-weight: 600;
+  text-shadow: 0 1px 3px #000, 0 0 10px rgba(0,0,0,.9); opacity: 0; transition: opacity .2s; pointer-events: none; }
+.pin.labeled span, .pin:hover span, .pin:focus-visible span { opacity: 1; }
+.pin[hidden] { display: none; }
+body.in-place #pins, body.look #pins { display: none; }
+
+#hint { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(76px + env(safe-area-inset-bottom, 0px)); z-index: 3;
+  color: var(--mist); font-size: 15px; text-align: center; pointer-events: none; transition: opacity .6s; text-shadow: 0 1px 6px #000; width: max-content; max-width: calc(100% - 32px); }
+
+/* panel */
+#panel { position: fixed; z-index: 6; background: var(--deep); border: 1px solid var(--line); display: flex; flex-direction: column;
+  transform: translateY(110%); transition: transform .5s cubic-bezier(.2,.8,.2,1); }
+#panel.open { transform: none; }
+@media (min-width: 900px) {
+  #panel { top: calc(84px + env(safe-area-inset-top, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); bottom: 16px; width: 420px; border-radius: 18px; transform: translateX(calc(100% + 40px)); }
+  #panel.open { transform: none; }
+  #grip { display: none; }
+}
+@media (max-width: 899px) {
+  #panel { left: 0; right: 0; bottom: 0; max-height: 46%; border-radius: 18px 18px 0 0; border-bottom: 0; transition: transform .5s cubic-bezier(.2,.8,.2,1), max-height .35s ease; }
+  #panel.tall { max-height: 82%; }
+}
+#grip { border: 0; background: none; width: 100%; min-height: 32px; cursor: pointer; display: grid; place-items: center; flex: none; }
+#grip::before { content: ""; width: 44px; height: 5px; border-radius: 3px; background: var(--line); }
+.scroll { overflow-y: auto; padding: 8px max(20px, env(safe-area-inset-left, 0px)) calc(24px + env(safe-area-inset-bottom, 0px)); overscroll-behavior: contain; }
+@media (min-width: 900px) { .scroll { padding: 24px 24px 28px; } }
+.eyebrow { font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--sand); font-weight: 600; }
+#p-name { font-family: var(--display); font-weight: 400; font-size: 34px; line-height: 1.1; margin: 6px 0 4px; text-wrap: balance; }
+.where { color: var(--mist); font-size: 15px; margin: 0 0 14px; }
+.intro { font-size: 19px; line-height: 1.45; margin: 0 0 16px; }
+.motion { display: flex; gap: 10px; flex-wrap: wrap; margin: 0 0 18px; }
+.status { font-size: 15px; color: var(--mist); border-left: 3px solid var(--sand); padding: 2px 0 2px 12px; margin: 0 0 20px; }
+details { border-top: 1px solid var(--line); }
+details:last-of-type { border-bottom: 1px solid var(--line); }
+summary { min-height: 52px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-weight: 600; font-size: 17px; list-style: none; }
+summary::-webkit-details-marker { display: none; }
+summary::after { content: "+"; font-size: 24px; color: var(--sand); font-weight: 400; }
+details[open] summary::after { content: "\2212"; }
+details p { margin: 0 0 16px; color: var(--stone); }
+h3 { font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--mist); margin: 24px 0 10px; font-weight: 600; }
+.facts { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.facts li { padding: 10px 14px; background: var(--raise); border-radius: 10px; font-size: 16px; font-variant-numeric: tabular-nums; }
+.related { display: flex; flex-wrap: wrap; gap: 8px; }
+.related button { min-height: 44px; padding: 0 14px; border-radius: 22px; border: 1px solid var(--line); background: none; cursor: pointer; font-size: 15px; }
+.related button:hover { border-color: var(--sand); }
+.photos { border: 1px dashed var(--line); border-radius: 12px; padding: 14px 16px; color: var(--mist); font-size: 15px; }
+.credit { font-size: 13px; color: var(--mist); margin-top: 22px; line-height: 1.5; }
+a { color: var(--sea); }
+
+/* find dialog */
+#finder { position: fixed; inset: 0; z-index: 10; background: rgba(8,17,19,.94); display: flex; flex-direction: column;
+  padding-top: calc(16px + env(safe-area-inset-top, 0px)); padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.find-head { display: flex; gap: 10px; max-width: 720px; width: 100%; margin: 0 auto; }
+#q { flex: 1; min-width: 0; min-height: 52px; border-radius: 26px; border: 1px solid var(--line); background: var(--deep); color: var(--stone); padding: 0 20px; font: inherit; font-size: 18px; }
+#results { overflow-y: auto; max-width: 720px; width: 100%; margin: 12px auto 0; padding-bottom: 24px; }
+#results h4 { font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--mist); margin: 18px 4px 6px; }
+.res { display: flex; width: 100%; text-align: left; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; padding: 8px 14px; border: 0; border-bottom: 1px solid var(--line); background: none; cursor: pointer; }
+.res:hover, .res:focus-visible { background: var(--raise); }
+.res b { font-weight: 600; font-size: 17px; }
+.res span { color: var(--mist); font-size: 14px; text-align: right; }
+
+#loading { position: fixed; left: 50%; top: 50%; transform: translate(-50%,-50%); z-index: 7; color: var(--stone); font-size: 16px; display: none; text-shadow: 0 1px 8px #000; }
+#loading.on { display: block; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+#err { position: fixed; inset: 0; display: none; place-items: center; text-align: center; padding: 24px; z-index: 20; background: var(--night); }
+@media (prefers-reduced-motion: reduce) { * { transition-duration: .01ms !important; } }
+</style>
+
+<video id="cam" playsinline muted aria-hidden="true"></video>
+<div id="stage" aria-hidden="true"></div>
+<div id="sky-grad"></div>
+<div id="pins" aria-label="Places on the globe"></div>
+<div id="look" aria-label="Places around you"></div>
+<div id="reticle" aria-hidden="true"></div>
+<div id="focus" hidden>
+  <div><p id="f-name"></p><p id="f-meta"></p><div id="f-layers" role="group" aria-label="Places in this direction, near to far" hidden></div></div>
+  <button class="btn primary" id="f-go" type="button">Explore</button>
+</div>
+<div id="edge" hidden aria-hidden="true"><i>→</i><b></b><small></small></div>
+<div id="start" hidden role="dialog" aria-modal="true" aria-labelledby="start-title">
+  <div class="start-card">
+    <h2 id="start-title">Look around the world</h2>
+    <p>Hold up your phone and turn. Famous places appear in their real direction, even the ones on the far side of the Earth, below your feet.</p>
+    <button class="btn primary" id="start-motion" type="button">Use my phone to look around</button>
+    <button class="btn" id="start-drag" type="button">Drag with my finger instead</button>
+  </div>
+</div>
+<div id="fade"></div>
+<section id="gallery" aria-label="Pictures">
+  <img id="g-img" alt="">
+  <p id="g-cap"></p>
+  <div id="g-thumbs" role="group" aria-label="Choose a picture"></div>
+</section>
+<button id="g-3d" type="button" aria-label="Open the 3D flyover"><span id="g-3d-txt">3D flyover</span></button>
+<p id="toast" role="status" hidden></p>
+
+<header class="bar">
+  <div class="brand">Bisita<small>Explore the world</small></div>
+  <div class="seg" role="group" aria-label="View">
+    <button type="button" id="m-look" aria-pressed="true">Look around</button>
+    <button type="button" id="m-globe" aria-pressed="false">Globe</button>
+  </div>
+  <button class="btn" id="back" type="button" aria-label="Back">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"/></svg>
+    <span>Back</span>
+  </button>
+  <button class="btn" id="motion-btn" type="button" aria-pressed="false" aria-label="Move with your phone">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M3 8c-1.3 2.4-1.3 5.6 0 8M21 8c1.3 2.4 1.3 5.6 0 8"/></svg>
+    <span class="lbl">Move with phone</span>
+  </button>
+  <button class="btn" id="where-btn" type="button" aria-label="Change where you are standing">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
+    <span class="lbl" id="where-txt">New York</span>
+  </button>
+  <button class="btn" id="find" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+    <span class="lbl">Find a place</span>
+  </button>
+</header>
+
+<p id="hint">Drag to look around. Tap a silhouette to go there.</p>
+<nav class="chips" id="chips" aria-label="Show only"></nav>
+
+<aside id="panel" aria-labelledby="p-name" aria-hidden="true">
+  <button id="grip" type="button" aria-label="Show more"></button>
+  <div class="scroll" id="scroll">
+    <div class="eyebrow" id="p-cat"></div>
+    <h2 id="p-name" tabindex="-1"></h2>
+    <p class="where" id="p-where"></p>
+    <p class="intro" id="p-intro"></p>
+    <div class="motion">
+      <button class="btn" id="pause" type="button" aria-pressed="false">
+        <svg viewBox="0 0 24 24" fill="currentColor" id="pause-ico"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+        <span id="pause-txt">Pause flyover</span>
+      </button>
+    </div>
+    <p class="status" id="p-status"></p>
+    <details><summary>How it formed</summary><p id="p-formed"></p></details>
+    <details><summary>Nature and wildlife</summary><p id="p-life"></p></details>
+    <details><summary>People and history</summary><p id="p-people"></p></details>
+    <h3>Quick facts</h3>
+    <ul class="facts" id="p-facts"></ul>
+    <h3>Photos from visitors</h3>
+    <div class="photos">Visitor photos are coming once accounts and safe uploads are ready. Nothing here is a stand-in.</div>
+    <h3>Explore more like this</h3>
+    <div class="related" id="p-related"></div>
+    <p class="credit" id="p-credit"></p>
+  </div>
+</aside>
+
+<div id="finder" hidden role="dialog" aria-modal="true" aria-labelledby="find-title">
+  <div class="find-head">
+    <label for="q" class="sr" id="find-title">Find a place</label>
+    <input id="q" type="search" placeholder="Type a place or country" autocomplete="off">
+    <button class="btn" id="find-close" type="button">Close</button>
+  </div>
+  <div id="results"></div>
+</div>
+
+<div id="cities" hidden role="dialog" aria-modal="true" aria-labelledby="cities-title" style="position:fixed;inset:0;z-index:10;background:rgba(8,17,19,.95);overflow-y:auto;padding:calc(16px + env(safe-area-inset-top,0px)) max(16px, env(safe-area-inset-right,0px)) 24px max(16px, env(safe-area-inset-left,0px))">
+  <div style="max-width:720px;margin:0 auto">
+    <div style="display:flex;align-items:center;gap:12px;justify-content:space-between">
+      <h2 id="cities-title" style="font-family:var(--display);font-weight:400;font-size:28px;margin:8px 0">Where are you standing?</h2>
+      <button class="btn" id="cities-close" type="button">Close</button>
+    </div>
+    <p style="color:var(--mist);margin:0 0 8px">Pick the city closest to you. The app version will use your phone's location instead.</p>
+    <div id="city-list"></div>
+  </div>
+</div>
+<div id="loading" role="status">Loading the landscape…</div>
+<p class="sr" id="live" aria-live="polite"></p>
+<div id="err"><p>Bisita needs 3D graphics (WebGL), which this browser has turned off. Try another browser or device.</p></div>
+
+<script src="three.min.js"></script>
+<script src="places.js"></script>
+<script>
+window.PLACE_VIEWS = {"iguazu":{"km":6.0,"elevMin":93,"elevMax":260,"date":"2025-08-17","bbox":[-54.46990540380971,-25.716949335249733,-54.410094596190284,-25.66305066475027]},"petra":{"km":5.0,"elevMin":794,"elevMax":1503,"date":"2025-06-13","bbox":[35.424983163199435,30.299542220625224,35.477016836800566,30.344457779374775]},"machu-picchu":{"km":6.0,"elevMin":1749,"elevMax":3241,"date":"2025-07-10","bbox":[-72.5726765031996,-13.18994933524973,-72.5173234968004,-13.13605066475027]},"swiss-alps":{"km":14.0,"elevMin":1605,"elevMax":4345,"date":"2025-07-09","bbox":[7.567517359124775,45.91311821775063,7.748482640875226,46.03888178224937]},"great-barrier-reef":{"km":10.0,"elevMin":0,"elevMax":341,"date":"2025-07-03","bbox":[148.99211920574086,-20.31491555874955,149.08788079425912,-20.22508444125045]},"victoria-falls":{"km":6.0,"elevMin":737,"elevMax":984,"date":"2025-05-31","bbox":[25.828675814557826,-17.951949335249733,25.885324185442173,-17.89805066475027]},"zhangjiajie":{"km":10.0,"elevMin":411,"elevMax":1236,"date":"2025-12-27","bbox":[110.38847522469449,29.29508444125045,110.4915247753055,29.38491555874955]},"fiordland":{"km":18.0,"elevMin":0,"elevMax":2186,"date":"2025-02-14","bbox":[167.76641447784658,-44.70084800574919,167.9935855221534,-44.53915199425081]},"yosemite":{"km":14.0,"elevMin":1180,"elevMax":2754,"date":"2025-07-06","bbox":[-119.66451165983868,37.67211821775063,-119.5054883401613,37.79788178224937]},"giza":{"km":3.0,"elevMin":7,"elevMax":124,"date":"2025-06-06","bbox":[31.11844408478022,29.965525332375133,31.149555915219782,29.992474667624865]},"dolomites":{"km":12.0,"elevMin":938,"elevMax":3054,"date":"2025-09-19","bbox":[12.224527345617508,46.565101329500536,12.381472654382494,46.672898670499464]},"galapagos":{"km":8.0,"elevMin":0,"elevMax":212,"date":"2024-03-06","bbox":[-90.58593287607336,-0.3159324469996407,-90.51406712392664,-0.24406755300035934]},"uluru":{"km":8.0,"elevMin":505,"elevMax":860,"date":"2025-05-29","bbox":[130.996240902735,-25.379932446999643,131.075759097265,-25.30806755300036]},"komodo":{"km":30.0,"elevMin":0,"elevMax":797,"date":"2024-07-17","bbox":[119.36372105522499,-8.734746676248653,119.63627894477501,-8.465253323751346]},"serengeti":{"km":20.0,"elevMin":1374,"elevMax":1799,"date":"2025-08-30","bbox":[34.70008803070011,-2.519831117499102,34.87991196929989,-2.3401688825008984]},"great-wall":{"km":6.0,"elevMin":160,"elevMax":1029,"date":"2025-09-08","bbox":[116.52859566899592,40.404050664750265,116.59940433100407,40.45794933524973]},"eiffel-tower":{"km":3.0,"elevMin":25,"elevMax":84,"date":"2025-08-12","bbox":[2.273519523890937,48.844525332375134,2.314480476109063,48.87147466762486]},"angkor-wat":{"km":4.0,"elevMin":4,"elevMax":86,"date":"2025-01-07","bbox":[103.84853005149971,13.39403377650018,103.8854699485003,13.429966223499822]},"plitvice":{"km":8.0,"elevMin":433,"elevMax":1069,"date":"2025-09-18","bbox":[15.55928994172434,44.844067553000365,15.660710058275658,44.91593244699964]},"santorini":{"km":18.0,"elevMin":0,"elevMax":520,"date":"2025-07-22","bbox":[25.29955444306469,36.31915199425081,25.500445556935308,36.48084800574919]},"zion":{"km":12.0,"elevMin":1189,"elevMax":2359,"date":"2025-10-08","bbox":[-113.01771622110267,37.20110132950054,-112.88228377889733,37.30889867049947]},"mount-fuji":{"km":26.0,"elevMin":156,"elevMax":3731,"date":"2025-03-22","bbox":[138.5848028017808,35.24421954725116,138.87119719821922,35.47778045274883]},"yellowstone":{"km":12.0,"elevMin":2195,"elevMax":2651,"date":"2025-09-25","bbox":[-110.90556766429432,44.446101329500536,-110.75443233570567,44.553898670499464]},"torres-del-paine":{"km":22.0,"elevMin":11,"elevMax":2618,"date":"2025-11-07","bbox":[-73.15694971928262,-51.07881422924901,-72.84305028071738,-50.88118577075098]},"kilimanjaro":{"km":26.0,"elevMin":1621,"elevMax":5875,"date":"2025-02-21","bbox":[37.23805203705435,-3.1837804527488323,37.47194796294564,-2.950219547251168]},"ha-long-bay":{"km":16.0,"elevMin":0,"elevMax":417,"date":"2024-12-20","bbox":[107.0030941832519,20.78813510600072,107.1569058167481,20.93186489399928]},"taj-mahal":{"km":3.0,"elevMin":142,"elevMax":185,"date":"2025-11-26","bbox":[78.0268533843417,27.161525332375135,78.0571466156583,27.188474667624867]},"banff":{"km":18.0,"elevMin":1520,"elevMax":3473,"date":"2025-08-21","bbox":[-116.32950419236003,51.28915199425081,-116.07049580763997,51.45084800574919]},"grand-canyon":{"km":16.0,"elevMin":709,"elevMax":2260,"date":"2025-06-17","bbox":[-112.20891453178037,36.00313510600072,-112.03108546821964,36.146864893999286]},"niagara":{"km":5.0,"elevMin":65,"elevMax":216,"date":"2025-06-11","bbox":[-79.10574720239856,43.05754222062522,-79.04425279760144,43.102457779374774]}};
+</script>
+<script>
+(() => {
+const D = Math.PI / 180;
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const $ = (id) => document.getElementById(id);
+const PLACES = window.PLACES, VIEWS = window.PLACE_VIEWS, CATS = window.CATEGORIES;
+
+// ---------- renderer ----------
+let renderer;
+try { renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); }
+catch (e) { $("err").style.display = "grid"; return; }
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.outputEncoding = THREE.sRGBEncoding;
+$("stage").appendChild(renderer.domElement);
+const camera = new THREE.PerspectiveCamera(40, 1, 0.01, 100);
+
+// ---------- globe scene ----------
+const globeScene = new THREE.Scene();
+const loader = new THREE.TextureLoader();
+const earthTex = loader.load("earth.jpg"); earthTex.encoding = THREE.sRGBEncoding; earthTex.anisotropy = 8;
+const bumpTex = loader.load("earth-bump.jpg");
+const earth = new THREE.Mesh(
+  new THREE.SphereGeometry(1, 128, 96),
+  new THREE.MeshPhongMaterial({ map: earthTex, bumpMap: bumpTex, bumpScale: 0.012, shininess: 10, specular: new THREE.Color(0x0c1414) })
+);
+globeScene.add(earth);
+// atmosphere rim
+const atmo = new THREE.Mesh(new THREE.SphereGeometry(1.06, 64, 48), new THREE.ShaderMaterial({
+  side: THREE.BackSide, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+  vertexShader: "varying vec3 vN; void main(){ vN = normalize(normalMatrix*normal); gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.); }",
+  fragmentShader: "varying vec3 vN; void main(){ float i = pow(max(0.0, 0.72 - dot(vN, vec3(0.,0.,1.))), 3.0); gl_FragColor = vec4(0.38, 0.64, 1.0, 1.0) * i * 1.6; }"
+}));
+globeScene.add(atmo);
+globeScene.add(new THREE.AmbientLight(0xffffff, 0.55));
+const sun = new THREE.DirectionalLight(0xfff3e0, 0.95);
+globeScene.add(sun);
+// faint star dust far behind the Earth (decoration only)
+{
+  const g = new THREE.BufferGeometry(), n = 1400, a = new Float32Array(n * 3);
+  let s = 7;
+  const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < n; i++) {
+    const u = rnd() * 2 - 1, t = rnd() * Math.PI * 2, r = 40;
+    a[i*3] = r * Math.sqrt(1-u*u) * Math.cos(t); a[i*3+1] = r * u; a[i*3+2] = r * Math.sqrt(1-u*u) * Math.sin(t);
+  }
+  g.setAttribute("position", new THREE.BufferAttribute(a, 3));
+  globeScene.add(new THREE.Points(g, new THREE.PointsMaterial({ color: 0x9fb3b8, size: 0.06, transparent: true, opacity: 0.55 })));
+}
+
+function ll2v(lat, lon, r = 1) {
+  const phi = (90 - lat) * D, th = (lon + 180) * D;
+  return new THREE.Vector3(-r * Math.sin(phi) * Math.cos(th), r * Math.cos(phi), r * Math.sin(phi) * Math.sin(th));
+}
+
+// camera orbit state (globe)
+const view = { lat: 22, lon: -40, dist: 3.1 };
+let mode = "look", base = "look";
+document.body.classList.add("look");
+let autoSpin = !reduce;
+function placeGlobeCamera() {
+  camera.position.copy(ll2v(view.lat, view.lon, view.dist));
+  camera.up.set(0, 1, 0);
+  camera.lookAt(0, 0, 0);
+  // light comes from over the viewer's left shoulder
+  const off = ll2v(view.lat + 25, view.lon - 40, 10);
+  sun.position.copy(off);
+}
+
+// ---------- pins ----------
+let activeCat = "all";
+const pinWrap = $("pins");
+const pins = PLACES.map((p) => {
+  const b = document.createElement("button");
+  b.className = "pin"; b.type = "button";
+  b.setAttribute("aria-label", `${p.name}, ${CATS[p.cat]} in ${p.country}`);
+  b.innerHTML = `<i></i><span>${p.name}</span>`;
+  b.addEventListener("click", (e) => { e.stopPropagation(); visit(p); });
+  pinWrap.appendChild(b);
+  return { p, b, v: ll2v(p.lat, p.lon, 1.003) };
+});
+
+const chipWrap = $("chips");
+[["all", "All places"], ...Object.entries(CATS)].forEach(([k, label]) => {
+  if (k !== "all" && !PLACES.some((p) => p.cat === k)) return;
+  const c = document.createElement("button");
+  c.className = "chip"; c.type = "button"; c.textContent = label;
+  c.setAttribute("aria-pressed", k === "all" ? "true" : "false");
+  c.addEventListener("click", () => {
+    activeCat = k;
+    chipWrap.querySelectorAll(".chip").forEach((x) => x.setAttribute("aria-pressed", x === c ? "true" : "false"));
+    say(k === "all" ? "Showing all places" : `Showing ${label.toLowerCase()} places`);
+  });
+  chipWrap.appendChild(c);
+});
+
+const tmp = new THREE.Vector3();
+function updatePins(w, h) {
+  const camDir = camera.position.clone().normalize();
+  const placed = [];
+  const order = pins.map((o) => {
+    const facing = o.v.clone().normalize().dot(camDir);
+    return { o, facing };
+  }).sort((a, b) => b.facing - a.facing);
+  for (const { o, facing } of order) {
+    const show = facing > 0.18 && (activeCat === "all" || o.p.cat === activeCat);
+    o.b.hidden = !show;
+    if (!show) continue;
+    tmp.copy(o.v).project(camera);
+    const x = (tmp.x * 0.5 + 0.5) * w, y = (-tmp.y * 0.5 + 0.5) * h;
+    o.b.style.transform = `translate(${x}px, ${y}px)`;
+    // simple label collision avoidance: front-most places win
+    const lw = o.p.name.length * 8.4 + 40, rect = [x - 6, y - 12, x + lw, y + 12];
+    const free = facing > 0.45 && !placed.some((r) => !(rect[2] < r[0] || rect[0] > r[2] || rect[3] < r[1] || rect[1] > r[3]));
+    if (free) placed.push(rect);
+    o.b.classList.toggle("labeled", free && view.dist < 3.6);
+  }
+}
+
+// ---------- globe interaction ----------
+const stage = $("stage");
+const ptrs = new Map();
+let lastPinch = 0, dragMoved = false, idleTimer = 0;
+function bump() { autoSpin = false; clearTimeout(idleTimer); idleTimer = setTimeout(() => { autoSpin = !reduce && mode === "globe"; }, 9000); hideHint(); }
+function hideHint() { $("hint").style.opacity = 0; }
+stage.addEventListener("pointerdown", (e) => { stage.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); dragMoved = false; bump(); if (mode === "place") placeUser(); });
+stage.addEventListener("pointermove", (e) => {
+  if (!ptrs.has(e.pointerId)) return;
+  const prev = ptrs.get(e.pointerId), cur = { x: e.clientX, y: e.clientY };
+  ptrs.set(e.pointerId, cur);
+  if (ptrs.size === 2) {
+    const [a, b] = [...ptrs.values()], d = Math.hypot(a.x - b.x, a.y - b.y);
+    if (lastPinch) zoomBy(lastPinch / d);
+    lastPinch = d; return;
+  }
+  const dx = cur.x - prev.x, dy = cur.y - prev.y;
+  if (Math.abs(dx) + Math.abs(dy) > 2) dragMoved = true;
+  if (mode === "globe") {
+    const k = 0.12 * (view.dist - 1) ;
+    view.lon -= dx * k; view.lat = Math.max(-80, Math.min(80, view.lat + dy * k));
+  } else if (mode === "look") {
+    const k = look.fov / innerHeight; turnAnim = null;
+    look.yaw = (look.yaw - dx * k + 360) % 360; look.pitch = Math.max(-89, Math.min(89, look.pitch + dy * k));
+  } else if (mode === "place") {
+    orbit.angle -= dx * 0.006; orbit.pitch = Math.max(0.12, Math.min(1.25, orbit.pitch + dy * 0.004));
+  }
+});
+const endPtr = (e) => { const was = ptrs.size; ptrs.delete(e.pointerId); if (ptrs.size < 2) lastPinch = 0; if (e.type === "pointerup" && was === 1 && !dragMoved && mode === "look") tapLook(e.clientX, e.clientY); };
+stage.addEventListener("pointerup", endPtr); stage.addEventListener("pointercancel", endPtr);
+stage.addEventListener("wheel", (e) => { e.preventDefault(); bump(); if (mode === "place") placeUser(); zoomBy(Math.exp(e.deltaY * 0.0012)); }, { passive: false });
+function zoomBy(f) {
+  if (mode === "globe") view.dist = Math.max(1.35, Math.min(4.2, 1 + (view.dist - 1) * f));
+  else if (mode === "look") look.fov = Math.max(30, Math.min(95, look.fov * f));
+  else if (mode === "place") orbit.radius = Math.max(0.35, Math.min(1.6, orbit.radius * f));
+}
+addEventListener("keydown", (e) => {
+  if (e.key === "Escape") { if (!$("cities").hidden) { $("cities").hidden = true; return; } if (!$("finder").hidden) closeFinder(); else if (mode === "place") backToWorld(); return; }
+  if (e.target.tagName === "INPUT") return;
+  if (mode === "look") {
+    if (e.key === "ArrowLeft") look.yaw = (look.yaw - 10 + 360) % 360;
+    if (e.key === "ArrowRight") look.yaw = (look.yaw + 10) % 360;
+    if (e.key === "ArrowUp") look.pitch = Math.min(89, look.pitch + 10);
+    if (e.key === "ArrowDown") look.pitch = Math.max(-89, look.pitch - 10);
+    hideHint();
+  }
+  if (mode === "globe") {
+    const step = 6 * (view.dist - 1) / 2;
+    if (e.key === "ArrowLeft") { view.lon -= step; bump(); }
+    if (e.key === "ArrowRight") { view.lon += step; bump(); }
+    if (e.key === "ArrowUp") { view.lat = Math.min(80, view.lat + step); bump(); }
+    if (e.key === "ArrowDown") { view.lat = Math.max(-80, view.lat - step); bump(); }
+    if (e.key === "+" || e.key === "=") zoomBy(0.85);
+    if (e.key === "-") zoomBy(1.18);
+  }
+});
+
+// ---------- look-around scene ----------
+const CITIES = [
+  ["New York", 40.71, -74.01, "city"], ["Los Angeles", 34.05, -118.24, "coast"], ["Phoenix", 33.45, -112.07, "desert"], ["Chicago", 41.88, -87.63, "prairie"],
+  ["Minneapolis", 44.98, -93.27, "prairie"], ["Kansas City", 39.10, -94.58, "prairie"], ["Columbus", 39.96, -83.00, "prairie"], ["Denver", 39.74, -104.99, "forest"],
+  ["Seattle", 47.61, -122.33, "forest"], ["Honolulu", 21.31, -157.86, "tropical"],
+  ["Toronto", 43.65, -79.38, "city"], ["Mexico City", 19.43, -99.13, "city"], ["São Paulo", -23.55, -46.63, "tropical"], ["London", 51.51, -0.13, "prairie"],
+  ["Paris", 48.86, 2.35, "city"], ["Rome", 41.90, 12.50, "city"], ["Cairo", 30.04, 31.24, "desert"], ["Nairobi", -1.29, 36.82, "savanna"], ["Dubai", 25.20, 55.27, "desert"],
+  ["Mumbai", 19.08, 72.88, "tropical"], ["Manila", 14.60, 120.98, "tropical"], ["Singapore", 1.35, 103.82, "tropical"], ["Tokyo", 35.68, 139.69, "city"], ["Sydney", -33.87, 151.21, "coast"],
+];
+let here = CITIES[0];
+try { const s = JSON.parse(localStorage.getItem("skyview-here") || "null"); const c = s && CITIES.find((x) => x[0] === s); if (c) here = c; } catch (e) {}
+const useMiles = /^en-(US|GB|LR|MM)$/i.test(navigator.language || "");
+const lookScene = new THREE.Scene();
+// Below the horizon the dome shows the real planet: each direction is traced
+// through the Earth to where it comes out on the far side, and the Blue Marble
+// picture of that spot is drawn there, faint, like looking through glass.
+const landTex = loader.load("earth-land.png");
+const dome = new THREE.Mesh(new THREE.SphereGeometry(50, 64, 48), new THREE.ShaderMaterial({
+  side: THREE.BackSide, depthWrite: false, extensions: { derivatives: true },
+  uniforms: { earthMap: { value: landTex }, uE: { value: new THREE.Vector3() }, uN: { value: new THREE.Vector3() }, uU: { value: new THREE.Vector3() } },
+  vertexShader: "varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.); }",
+  fragmentShader: `varying vec3 vP; uniform sampler2D earthMap; uniform vec3 uE; uniform vec3 uN; uniform vec3 uU;
+    void main(){
+      vec3 d = normalize(vP); float y = d.y;
+      vec3 zen = vec3(0.035,0.075,0.11), hor = vec3(0.30,0.40,0.45);
+      vec3 sky = mix(hor, zen, pow(smoothstep(0.0, 0.75, y), 0.7));
+      float el = degrees(asin(clamp(y,-1.,1.)));
+      float az = degrees(atan(d.x, -d.z));
+      vec3 deep = mix(vec3(0.075,0.085,0.07), vec3(0.02,0.03,0.035), smoothstep(0.0, -1.0, y));
+      float ring = 1.0 - smoothstep(0.0, 0.18, abs(fract(el / 15.0 + 0.5) - 0.5) * 15.0);
+      float spoke = (1.0 - smoothstep(0.0, 0.18, abs(fract(az / 30.0 + 0.5) - 0.5) * 30.0 * cos(radians(el)))) * step(el, -2.0) * step(-86.0, el);
+      vec3 ground = deep + vec3(0.25,0.32,0.30) * max(ring, spoke) * 0.22;
+      if (y < 0.0) {
+        vec3 de = d.x * uE + d.y * uU - d.z * uN;           // view direction on the globe
+        vec3 q = uU + (-2.0 * d.y) * de;                     // where the line leaves the far side
+        float lat = asin(clamp(q.z, -1., 1.)), lon = atan(q.y, q.x);
+        float m = texture2D(earthMap, vec2(lon / 6.2831853 + 0.5, lat / 3.1415927 + 0.5)).r;
+        // ghost continents: land as pale mist with a fine glowing coastline, oceans left dark
+        float fw = max(fwidth(m), 1e-4);
+        float land = smoothstep(0.5 - fw, 0.5 + fw, m);
+        float coast = 1.0 - smoothstep(0.0, 1.6 * fw, abs(m - 0.5));
+        float a = smoothstep(0.0, -0.22, y);                 // fade in below the local ground layer
+        ground += (vec3(0.62, 0.66, 0.58) * land * 0.09 + vec3(0.89, 0.68, 0.42) * coast * 0.38) * a;
+      }
+      vec3 c = y > 0.0 ? sky : ground;
+      float hl = exp(-abs(y) * 140.0);
+      c += vec3(0.89,0.68,0.42) * hl * 0.9;
+      gl_FragColor = vec4(c, 1.0);
+      #include <encodings_fragment>
+    }`,
+}));
+lookScene.add(dome);
+// ---------- the ground where you stand ----------
+// A ghostly band of the landscape around you (prairie grass, desert, palms…),
+// drawn as a 360° panorama just below the horizon. It fills empty directions
+// without hiding the places behind it, and switches off when the camera is on.
+const BIOME_BAND = { r: 5, lo: -16, hi: 5 };
+function rnd(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
+function drawBiome(kind) {
+  const W = 4096, H = 512, cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+  const g = cv.getContext("2d"), R = rnd(kind.length * 977 + 13);
+  const tanLo = Math.tan(BIOME_BAND.lo * D), tanHi = Math.tan(BIOME_BAND.hi * D);
+  const yOf = (el) => H * (tanHi - Math.tan(el * D)) / (tanHi - tanLo); // elevation → canvas row
+  const hz = yOf(0);
+  const ink = (a) => `rgba(226,232,214,${a})`;
+  const wrap = (fn) => { for (const o of [-W, 0, W]) { g.save(); g.translate(o, 0); fn(); g.restore(); } };
+  // distance haze: the ground darkens and fades toward your feet
+  const floor = g.createLinearGradient(0, hz, 0, H);
+  floor.addColorStop(0, "rgba(200,210,190,0.10)"); floor.addColorStop(1, "rgba(200,210,190,0)");
+  g.fillStyle = floor; g.fillRect(0, hz, W, H - hz);
+  const blades = (n, tall, hue) => {
+    // grass grows in tufts: a few blades from one root, each with its own curve
+    for (let i = 0; i < n; i++) {
+      const x0 = R() * W, depth = Math.pow(R(), 2.2), y = hz + 3 + depth * (H - hz - 3);
+      const tuft = 2 + Math.floor(R() * 5), size = (4 + depth * tall) * (0.55 + R() * 0.7);
+      const a = 0.05 + depth * 0.2;
+      for (let b = 0; b < tuft; b++) {
+        const x = x0 + (R() - 0.5) * 3 * (1 + depth * 3), h = size * (0.6 + R() * 0.5);
+        const lean = (R() - 0.5) * 1.1 * h + (b - tuft / 2) * h * 0.08, bend = 0.25 + R() * 0.5;
+        wrap(() => {
+          g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + lean * bend * 0.4, y - h * 0.7, x + lean, y - h * (1 - Math.abs(lean) / h * 0.3));
+          g.strokeStyle = hue ? hue(a) : ink(a); g.lineWidth = 0.5 + depth * 1.3; g.stroke();
+        });
+      }
+      if (depth > 0.35 && R() < 0.06) wrap(() => { // a seed head now and then
+        g.beginPath(); g.ellipse(x0, y - size * 1.05, 1 + depth * 2, 3 + depth * 6, (R() - 0.5) * 0.6, 0, Math.PI * 2);
+        g.fillStyle = `rgba(236,214,170,${a * 1.3})`; g.fill();
+      });
+    }
+  };
+  const ridge = (amp, base, a, seed) => {
+    const r = rnd(seed); const pts = []; let v = 0;
+    for (let x = 0; x <= W; x += 16) { v += (r() - 0.5) * 0.6; v *= 0.96; pts.push([x, base - amp * (0.5 + 0.5 * Math.sin(x / W * Math.PI * 6 + seed) * 0.6 + v * 0.3)]); }
+    pts[pts.length - 1][1] = pts[0][1];
+    g.beginPath(); g.moveTo(0, H); pts.forEach(([x, y]) => g.lineTo(x, y)); g.lineTo(W, H); g.closePath();
+    const gr = g.createLinearGradient(0, base - amp, 0, H); gr.addColorStop(0, ink(a)); gr.addColorStop(0.5, ink(a * 0.3)); gr.addColorStop(1, ink(0));
+    g.fillStyle = gr; g.fill();
+    g.beginPath(); pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.strokeStyle = ink(a * 1.6); g.lineWidth = 1.5; g.stroke();
+  };
+  const tree = (x, y, s, a, kindOf) => wrap(() => {
+    g.fillStyle = ink(a); g.strokeStyle = ink(a * 1.4); g.lineWidth = Math.max(1, s * 0.06);
+    if (kindOf === "pine") {
+      g.beginPath(); g.moveTo(x, y - s); for (let k = 0; k < 4; k++) { const yy = y - s + (k + 1) * s * 0.22, ww = s * (0.12 + k * 0.08); g.lineTo(x + ww, yy); g.lineTo(x + ww * 0.45, yy - s * 0.02); } g.lineTo(x, y - s * 0.1);
+      for (let k = 3; k >= 0; k--) { const yy = y - s + (k + 1) * s * 0.22, ww = s * (0.12 + k * 0.08); g.lineTo(x - ww * 0.45, yy - s * 0.02); g.lineTo(x - ww, yy); } g.closePath(); g.fill();
+      g.fillRect(x - s * 0.02, y - s * 0.12, s * 0.04, s * 0.12);
+    } else if (kindOf === "palm") {
+      g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + s * 0.15, y - s * 0.5, x + s * 0.08, y - s); g.lineWidth = Math.max(1.2, s * 0.05); g.stroke();
+      for (let k = 0; k < 7; k++) { const ang = -Math.PI / 2 + (k - 3) * 0.48; g.beginPath(); g.moveTo(x + s * 0.08, y - s); g.quadraticCurveTo(x + s * 0.08 + Math.cos(ang) * s * 0.35, y - s + Math.sin(ang) * s * 0.3 - s * 0.05, x + s * 0.08 + Math.cos(ang) * s * 0.5, y - s + Math.sin(ang) * s * 0.18 + s * 0.12); g.lineWidth = Math.max(1, s * 0.035); g.stroke(); }
+    } else if (kindOf === "acacia") {
+      g.beginPath(); g.moveTo(x, y); g.lineTo(x + s * 0.05, y - s * 0.6); g.lineTo(x - s * 0.2, y - s * 0.75); g.moveTo(x + s * 0.05, y - s * 0.6); g.lineTo(x + s * 0.3, y - s * 0.78); g.lineWidth = Math.max(1, s * 0.04); g.stroke();
+      g.beginPath(); g.ellipse(x + s * 0.03, y - s * 0.82, s * 0.5, s * 0.1, 0, 0, Math.PI * 2); g.fill();
+    } else if (kindOf === "saguaro") {
+      g.lineCap = "round"; g.lineWidth = Math.max(1.5, s * 0.065);
+      g.beginPath(); g.moveTo(x, y); g.lineTo(x, y - s); g.moveTo(x, y - s * 0.45); g.lineTo(x - s * 0.22, y - s * 0.45); g.lineTo(x - s * 0.22, y - s * 0.75);
+      g.moveTo(x, y - s * 0.55); g.lineTo(x + s * 0.2, y - s * 0.55); g.lineTo(x + s * 0.2, y - s * 0.85); g.stroke();
+    } else if (kindOf === "oak") {
+      g.beginPath(); for (let k = 0; k < 6; k++) g.ellipse(x + (k - 2.5) * s * 0.12, y - s * (0.6 + (k % 2) * 0.12), s * 0.22, s * 0.18, 0, 0, Math.PI * 2); g.fill();
+      g.fillRect(x - s * 0.03, y - s * 0.5, s * 0.06, s * 0.5);
+    }
+  });
+  const scatter = (n, kindOf, maxS) => { for (let i = 0; i < n; i++) { const depth = Math.pow(R(), 1.5), y = hz + 4 + depth * (H - hz) * 0.75; tree(R() * W, y, 14 + depth * maxS, 0.08 + depth * 0.22, kindOf); } };
+  if (kind === "prairie") { ridge(8, hz + 2, 0.08, 3); blades(4200, 90, (a) => `rgba(222,226,196,${a})`); scatter(8, "oak", 50); }
+  else if (kind === "savanna") { ridge(16, hz + 1, 0.10, 5); blades(3800, 90, (a) => `rgba(236,222,180,${a})`); scatter(16, "acacia", 110); }
+  else if (kind === "desert") {
+    ridge(34, hz + 2, 0.12, 7); ridge(14, hz + 18, 0.10, 9);
+    for (let i = 0; i < 260; i++) { const depth = Math.pow(R(), 1.6), y = hz + 6 + depth * (H - hz - 6), s = 3 + depth * 26; wrap(() => { g.beginPath(); g.ellipse(R() * W, y, s, s * 0.45, 0, Math.PI, 0); g.fillStyle = `rgba(236,214,180,${0.06 + depth * 0.2})`; g.fill(); }); }
+    scatter(18, "saguaro", 90);
+  } else if (kind === "forest") { ridge(40, hz + 2, 0.12, 11); scatter(420, "pine", 170); blades(1200, 50); }
+  else if (kind === "tropical") { ridge(26, hz + 2, 0.10, 13); scatter(46, "palm", 190); blades(2600, 70); }
+  else if (kind === "coast") {
+    for (let k = 0; k < 26; k++) { const depth = k / 26, y = hz + 2 + Math.pow(depth, 1.8) * (H - hz - 2); g.beginPath(); for (let x = 0; x <= W; x += 8) { const yy = y + Math.sin(x / (40 + depth * 120) + k * 1.7) * (1 + depth * 6); x ? g.lineTo(x, yy) : g.moveTo(x, yy); } g.strokeStyle = `rgba(214,232,240,${0.08 + depth * 0.22})`; g.lineWidth = 0.8 + depth * 2; g.stroke(); }
+    scatter(14, "palm", 120);
+  } else if (kind === "city") {
+    for (const [base, a, n, hMax] of [[hz + 1, 0.09, 260, 70], [hz + 22, 0.14, 120, 130]]) {
+      for (let i = 0; i < n; i++) { const x = R() * W, w = 10 + R() * 40, h = 10 + Math.pow(R(), 2.2) * hMax; wrap(() => { g.fillStyle = ink(a); g.fillRect(x, base - h, w, h + (H - base)); g.fillStyle = `rgba(236,200,140,${a * 1.6})`; for (let wy = base - h + 6; wy < base - 4; wy += 9) for (let wx = x + 3; wx < x + w - 3; wx += 7) if (R() < 0.18) g.fillRect(wx, wy, 2.5, 3); }); }
+    }
+    const fade = g.createLinearGradient(0, hz + 30, 0, H); fade.addColorStop(0, "rgba(8,17,19,0)"); fade.addColorStop(1, "rgba(8,17,19,0)"); g.fillStyle = fade; g.fillRect(0, hz + 30, W, H);
+    blades(900, 40);
+  }
+  // melt the bottom edge into the view through the Earth
+  g.globalCompositeOperation = "destination-in";
+  const m = g.createLinearGradient(0, 0, 0, H); m.addColorStop(0, "rgba(0,0,0,1)"); m.addColorStop(0.72, "rgba(0,0,0,1)"); m.addColorStop(1, "rgba(0,0,0,0)");
+  g.fillStyle = m; g.fillRect(0, 0, W, H); g.globalCompositeOperation = "source-over";
+  return cv;
+}
+const biomeMat = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, side: THREE.BackSide, opacity: 0.9 });
+const biomeMesh = (() => {
+  const { r, lo, hi } = BIOME_BAND, y0 = r * Math.tan(lo * D), y1 = r * Math.tan(hi * D);
+  const geo = new THREE.CylinderGeometry(r, r, y1 - y0, 160, 1, true);
+  const m = new THREE.Mesh(geo, biomeMat); m.position.y = (y0 + y1) / 2; m.renderOrder = -1;
+  return m;
+})();
+lookScene.add(biomeMesh);
+const BIOME_WORDS = { prairie: "prairie grass", savanna: "savanna", desert: "desert", forest: "forest", tropical: "palms", coast: "coast", city: "city" };
+function setBiome(kind) {
+  const tex = new THREE.CanvasTexture(drawBiome(kind)); tex.encoding = THREE.sRGBEncoding; tex.wrapS = THREE.RepeatWrapping;
+  if (biomeMat.map) biomeMat.map.dispose();
+  biomeMat.map = tex; biomeMat.needsUpdate = true;
+}
+
+const look = { yaw: 0, pitch: -8, fov: 70 };
+const lookWrap = $("look");
+function dirFor(lat1, lon1, lat2, lon2) {
+  const p1 = lat1 * D, p2 = lat2 * D, dl = (lon2 - lon1) * D;
+  const cosT = Math.min(1, Math.max(-1, Math.sin(p1) * Math.sin(p2) + Math.cos(p1) * Math.cos(p2) * Math.cos(dl)));
+  const theta = Math.acos(cosT);
+  const brg = Math.atan2(Math.sin(dl) * Math.cos(p2), Math.cos(p1) * Math.sin(p2) - Math.sin(p1) * Math.cos(p2) * Math.cos(dl));
+  const e = -theta / 2; // the straight line through the Earth dips by half the arc
+  return { v: new THREE.Vector3(Math.sin(brg) * Math.cos(e), Math.sin(e), -Math.cos(brg) * Math.cos(e)), km: theta * 6371, brg: (brg / D + 360) % 360, el: e / D };
+}
+// Each place appears in its true direction, the way SkyView shows planets:
+// natural places as a see-through "ghost" of their real terrain (drawn from satellite
+// and elevation data, seen from your side), built landmarks as glowing illustrations.
+const LINE_ART = {
+  "eiffel-tower": (g) => {
+    g.beginPath(); g.moveTo(330, 900); g.quadraticCurveTo(470, 560, 500, 160); g.moveTo(694, 900); g.quadraticCurveTo(554, 560, 524, 160);
+    g.moveTo(500, 160); g.lineTo(512, 60); g.lineTo(524, 160); g.moveTo(512, 60); g.lineTo(512, 20);
+    g.moveTo(400, 900); g.quadraticCurveTo(512, 720, 624, 900);
+    for (const [y, w] of [[690, 230], [470, 120], [300, 70], [180, 30]]) { g.moveTo(512 - w / 2 - 12, y); g.lineTo(512 + w / 2 + 12, y); }
+    for (let y = 560; y < 900; y += 46) { g.moveTo(512 - (900 - y) * 0.18 - 40 - (y - 560) * 0.32, y); g.lineTo(512 + (900 - y) * 0.18 + 40 + (y - 560) * 0.32, y + 46); }
+    for (let y = 300; y < 690; y += 48) { const a = 30 + (y - 300) * 0.2; g.moveTo(512 - a, y); g.lineTo(512 + a, y + 48); g.moveTo(512 + a, y); g.lineTo(512 - a, y + 48); }
+    g.stroke();
+  },
+  "taj-mahal": (g) => {
+    g.beginPath(); g.moveTo(120, 900); g.lineTo(904, 900); g.moveTo(150, 860); g.lineTo(874, 860);
+    g.rect(330, 560, 364, 300); g.moveTo(450, 860); g.lineTo(450, 700); g.quadraticCurveTo(512, 610, 574, 700); g.lineTo(574, 860);
+    g.moveTo(400, 560); g.bezierCurveTo(330, 470, 380, 330, 512, 290); g.bezierCurveTo(644, 330, 694, 470, 624, 560);
+    g.moveTo(512, 290); g.lineTo(512, 200); g.moveTo(498, 230); g.lineTo(526, 230);
+    for (const x of [372, 652]) { g.moveTo(x - 22, 560); g.lineTo(x - 22, 510); g.quadraticCurveTo(x, 470, x + 22, 510); g.lineTo(x + 22, 560); }
+    for (const x of [190, 834]) { g.moveTo(x - 14, 860); g.lineTo(x - 10, 470); g.lineTo(x + 10, 470); g.lineTo(x + 14, 860); g.moveTo(x - 18, 470); g.quadraticCurveTo(x, 430, x + 18, 470); for (const y of [600, 720]) { g.moveTo(x - 20, y); g.lineTo(x + 20, y); } }
+    g.stroke();
+  },
+  giza: (g) => {
+    g.beginPath(); g.moveTo(60, 880); g.lineTo(964, 880);
+    for (const [cx, w, h] of [[300, 360, 300], [620, 400, 330], [850, 200, 160]]) { g.moveTo(cx - w / 2, 880); g.lineTo(cx, 880 - h); g.lineTo(cx + w / 2, 880); g.moveTo(cx, 880 - h); g.lineTo(cx + w * 0.12, 880); }
+    g.moveTo(80, 880); g.lineTo(90, 840); g.lineTo(150, 830); g.lineTo(160, 800); g.lineTo(185, 805); g.lineTo(190, 880);
+    g.stroke();
+  },
+  petra: (g) => {
+    g.beginPath(); g.moveTo(140, 920); g.lineTo(140, 80); g.moveTo(884, 920); g.lineTo(884, 80);
+    g.rect(250, 600, 524, 300); for (const x of [270, 360, 450, 574, 664, 754]) { g.moveTo(x, 600); g.lineTo(x, 900); }
+    g.moveTo(240, 600); g.lineTo(512, 500); g.lineTo(784, 600);
+    g.moveTo(270, 470); g.lineTo(270, 200); g.moveTo(370, 470); g.lineTo(370, 200); g.moveTo(654, 470); g.lineTo(654, 200); g.moveTo(754, 470); g.lineTo(754, 200);
+    g.moveTo(250, 470); g.lineTo(774, 470); g.moveTo(250, 200); g.lineTo(390, 140); g.moveTo(774, 200); g.lineTo(634, 140);
+    g.rect(442, 220, 140, 250); g.moveTo(432, 220); g.quadraticCurveTo(512, 140, 592, 220); g.moveTo(512, 160); g.lineTo(512, 100);
+    g.stroke();
+  },
+  "angkor-wat": (g) => {
+    g.beginPath(); g.moveTo(80, 900); g.lineTo(944, 900);
+    g.moveTo(140, 900); g.lineTo(140, 820); g.lineTo(884, 820); g.lineTo(884, 900); g.moveTo(220, 820); g.lineTo(220, 740); g.lineTo(804, 740); g.lineTo(804, 820);
+    const tower = (cx, base, h, w) => { g.moveTo(cx - w, base); g.bezierCurveTo(cx - w, base - h * 0.5, cx - w * 0.35, base - h * 0.8, cx, base - h); g.bezierCurveTo(cx + w * 0.35, base - h * 0.8, cx + w, base - h * 0.5, cx + w, base);
+      for (let i = 1; i < 5; i++) { const y = base - h * i * 0.18, k = 1 - i * 0.17; g.moveTo(cx - w * k, y); g.lineTo(cx + w * k, y); } };
+    tower(512, 740, 420, 70); tower(320, 740, 260, 50); tower(704, 740, 260, 50); tower(230, 820, 180, 38); tower(794, 820, 180, 38);
+    g.stroke();
+  },
+  "great-wall": (g) => {
+    g.beginPath();
+    g.moveTo(40, 760); g.bezierCurveTo(200, 520, 300, 520, 420, 640); g.bezierCurveTo(540, 760, 640, 420, 760, 400); g.bezierCurveTo(860, 390, 920, 470, 990, 520);
+    g.moveTo(40, 820); g.bezierCurveTo(200, 580, 300, 580, 420, 700); g.bezierCurveTo(540, 820, 640, 480, 760, 460); g.bezierCurveTo(860, 450, 920, 530, 990, 580);
+    for (const [x, y] of [[250, 545], [560, 650], [760, 400]]) { g.rect(x - 34, y - 90, 68, 90); g.moveTo(x - 40, y - 90); g.lineTo(x + 40, y - 90); }
+    g.moveTo(0, 900); g.bezierCurveTo(200, 760, 380, 860, 520, 880); g.bezierCurveTo(700, 900, 860, 800, 1024, 860);
+    g.stroke();
+  },
+};
+const lookItems = [];
+function buildLookItem(p) {
+  const holder = new THREE.Group();
+  const item = { p, holder, d: null, art: !!LINE_ART[p.id], mat: null, reveal: 0, revealed: false };
+  if (item.art) {
+    const cv = document.createElement("canvas"); cv.width = cv.height = 1024;
+    const g = cv.getContext("2d");
+    g.lineJoin = g.lineCap = "round";
+    // a misty body first, so the landmark reads as a see-through ghost, then crisp edges
+    g.filter = "blur(10px)"; g.strokeStyle = "rgba(225,232,240,0.16)"; g.lineWidth = 46; LINE_ART[p.id](g);
+    g.filter = "blur(3px)"; g.strokeStyle = "rgba(233,227,214,0.28)"; g.lineWidth = 18; LINE_ART[p.id](g);
+    g.filter = "none"; g.strokeStyle = "rgba(233,227,214,0.9)"; g.lineWidth = 5;
+    g.shadowColor = "rgba(227,173,108,0.85)"; g.shadowBlur = 16;
+    LINE_ART[p.id](g);
+    const tex = new THREE.CanvasTexture(cv); tex.encoding = THREE.sRGBEncoding;
+    const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, opacity: 0.92 });
+    const art = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
+    holder.add(art); item.mat = mat;
+  } else {
+    const meta = VIEWS[p.id];
+    item.silCv = document.createElement("canvas"); item.silCv.width = 512; item.silCv.height = 256;
+    item.silTex = new THREE.CanvasTexture(item.silCv); item.silTex.encoding = THREE.sRGBEncoding;
+    item.silMat = new THREE.MeshBasicMaterial({ map: item.silTex, transparent: true, depthWrite: false, opacity: 1 });
+    const sil = new THREE.Mesh(new THREE.PlaneGeometry(1, 0.5), item.silMat); sil.position.y = -0.06; sil.renderOrder = 1; holder.add(sil);
+    loadImg(`places/${p.id}-dem.png`).then((dem) => {
+      const S = 128, cv = document.createElement("canvas"); cv.width = cv.height = S;
+      const cx = cv.getContext("2d"); cx.drawImage(dem, 0, 0, S, S); const px = cx.getImageData(0, 0, S, S).data;
+      const ratio = (meta.elevMax - meta.elevMin) / (meta.km * 1000);
+      item.h = new Float32Array(S * S); for (let i = 0; i < S * S; i++) item.h[i] = (px[i * 4] * 256 + px[i * 4 + 1]) / 65535;
+      item.S = S; item.hScale = Math.max(0.5, Math.min(1, ratio * 10));
+      drawSil(item);
+    });
+  }
+  const hit = new THREE.Mesh(new THREE.PlaneGeometry(1, 0.9), new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false }));
+  hit.userData.item = item; holder.add(hit); item.hit = hit;
+  const label = document.createElement("div"); label.className = "olabel"; label.setAttribute("aria-hidden", "true");
+  label.innerHTML = "<b></b><small></small>"; label.querySelector("b").textContent = p.name;
+  lookWrap.appendChild(label); item.label = label;
+  lookScene.add(holder);
+  lookItems.push(item);
+  return item;
+}
+// The skyline of a place as seen from the viewer's direction: for each column
+// across the view, the highest ground in three depth bands (far, middle, near).
+function drawSil(it) {
+  if (!it.h || !it.d) return;
+  const S = it.S, H = it.h, b = it.d.brg * D;
+  const fx = Math.sin(b), fy = Math.cos(b), ax = Math.cos(b), ay = -Math.sin(b); // forward and right, in east/north units
+  const N = 160, bands = [[0.5, 1], [0, 0.5]], prof = bands.map(() => new Float32Array(N));
+  for (let c = 0; c < N; c++) {
+    const u = c / (N - 1) - 0.5;
+    bands.forEach(([t0, t1], k) => {
+      let m = -1;
+      for (let t = t0; t <= t1; t += 0.01) {
+        const v = t - 0.5, x = u * ax + v * fx, y = u * ay + v * fy;
+        if (x * x + y * y > 0.235) continue;
+        const col = Math.round((x + 0.5) * (S - 1)), row = Math.round((0.5 - y) * (S - 1));
+        const hh = H[row * S + col]; if (hh > m) m = hh;
+      }
+      prof[k][c] = m;
+    });
+  }
+  for (const pr of prof) { const c = Float32Array.from(pr); for (let i = 0; i < N; i++) { let sum = 0, n = 0; for (let j = -3; j <= 3; j++) { const v = c[i + j]; if (v >= 0) { sum += v; n++; } } if (pr[i] >= 0 && n) pr[i] = sum / n; } }
+  const g = it.silCv.getContext("2d"), W = 512, Ht = 256;
+  g.clearRect(0, 0, W, Ht);
+  const fills = [0.16, 0.5], strokes = [0.5, 1];
+  prof.forEach((pr, k) => {
+    const base = Ht - 18 - (1 - k) * 8, amp = 210 * it.hScale;
+    const cols = []; for (let c = 0; c < N; c++) if (pr[c] >= 0) cols.push(c);
+    if (!cols.length) return;
+    const X = (c) => (c / (N - 1)) * W, Y = (c) => base - pr[c] * amp;
+    g.beginPath(); g.moveTo(X(cols[0]), Ht);
+    for (const c of cols) g.lineTo(X(c), Y(c));
+    g.lineTo(X(cols[cols.length - 1]), Ht); g.closePath();
+    const grad = g.createLinearGradient(0, 0, 0, Ht);
+    grad.addColorStop(0, `rgba(233,227,214,${fills[k]})`); grad.addColorStop(0.75, `rgba(120,110,95,${fills[k] * 0.5})`); grad.addColorStop(1, "rgba(60,55,50,0)");
+    g.fillStyle = grad; g.fill();
+    g.beginPath();
+    cols.forEach((c, i) => (i ? g.lineTo(X(c), Y(c)) : g.moveTo(X(c), Y(c))));
+    g.strokeStyle = `rgba(233,227,214,${strokes[k]})`; g.lineWidth = k === 1 ? 3.5 : 2; g.shadowColor = "rgba(227,173,108,0.85)"; g.shadowBlur = k === 1 ? 12 : 4; g.stroke(); g.shadowBlur = 0;
+  });
+  // fade the ends so it melts into the sky
+  g.globalCompositeOperation = "destination-in";
+  const fade = g.createLinearGradient(0, 0, W, 0);
+  fade.addColorStop(0, "rgba(0,0,0,0)"); fade.addColorStop(0.3, "rgba(0,0,0,1)"); fade.addColorStop(0.7, "rgba(0,0,0,1)"); fade.addColorStop(1, "rgba(0,0,0,0)");
+  g.fillStyle = fade; g.fillRect(0, 0, W, Ht); g.globalCompositeOperation = "source-over";
+  it.silTex.needsUpdate = true;
+}
+// ---------- layering places that share a direction ----------
+// Places close together in direction form a stack. The nearest stays at its true
+// direction; each farther one sits just below the one in front (farther really is
+// lower, since the line to it dips deeper through the Earth), smaller and hazier,
+// like ridges fading into the distance. Aiming at a layer pulls it into focus.
+function layoutLook() {
+  const its = lookItems.slice().sort((a, b) => a.d.km - b.d.km);
+  for (const it of its) { const t = Math.min(1, it.d.km / 20000); it.r = 8 + 22 * t; it.w = 38 - 20 * t; it.stack = null; it.layer = 0; }
+  // nearest first: each place joins the stack whose front it hides behind, else starts its own
+  const stacks = [];
+  for (const it of its) {
+    let home = null, bestSep = 1e9;
+    for (const st of stacks) {
+      const sep = Math.acos(Math.min(1, st[0].d.v.dot(it.d.v))) / D;
+      if (sep < 0.5 * st[0].w && sep < bestSep) { bestSep = sep; home = st; }
+    }
+    home ? home.push(it) : stacks.push([it]);
+  }
+  for (const g of stacks) {
+    g.sort((a, b) => a.d.km - b.d.km);
+    g.forEach((it, k) => {
+      it.layer = k; it.stack = g.length > 1 ? g : null;
+      let el = it.d.el;
+      if (k > 0) { const prev = g[k - 1]; el = Math.min(el, prev.dispEl - 0.24 * prev.w); }
+      it.dispEl = Math.max(-88, el);
+      const e = it.dispEl * D, b = it.d.brg * D;
+      it.dv = new THREE.Vector3(Math.sin(b) * Math.cos(e), Math.sin(e), -Math.cos(b) * Math.cos(e));
+      it.holder.position.copy(it.dv).multiplyScalar(it.r);
+      it.holder.up.set(0, 1, 0); it.holder.lookAt(0, 0, 0);
+      it.holder.scale.setScalar(2 * it.r * Math.tan((it.w / 2) * D));
+    });
+  }
+}
+// the stack picker: one pill per layer, near to far
+let pinned = null, shownStack = null, focused = null;
+function showStack(st, active) {
+  const box = $("f-layers");
+  if (!st) { box.hidden = true; shownStack = null; return; }
+  if (st !== shownStack) {
+    shownStack = st; box.innerHTML = "";
+    st.forEach((it) => {
+      const b = document.createElement("button"); b.type = "button"; b.className = "layer";
+      b.innerHTML = "<b></b><span></span>"; b.querySelector("b").textContent = it.p.name; b.querySelector("span").textContent = fmtDist(it.d.km);
+      b.addEventListener("click", (e) => { e.stopPropagation(); pickLayer(it); });
+      it.pill = b; box.appendChild(b);
+    });
+    box.hidden = false;
+  }
+  st.forEach((it) => it.pill.setAttribute("aria-pressed", it === active ? "true" : "false"));
+}
+function pickLayer(it) {
+  pinned = it;
+  // without phone motion, also turn the view to it
+  if (!(motion.on && motion.got) && !zoomAnim) {
+    let dy = ((it.d.brg - look.yaw + 540) % 360) - 180;
+    turnAnim = { t0: performance.now(), from: { yaw: look.yaw, pitch: look.pitch }, to: { yaw: look.yaw + dy, pitch: it.dispEl + 2 } };
+  }
+  say(`${it.p.name}, ${fmtDist(it.d.km)} away`);
+}
+let turnAnim = null;
+function stepTurn(now) {
+  if (!turnAnim) return;
+  const z = turnAnim, k = Math.min(1, (now - z.t0) / (reduce ? 1 : 700)), e = ease(k);
+  look.yaw = (z.from.yaw + (z.to.yaw - z.from.yaw) * e + 360) % 360; look.pitch = z.from.pitch + (z.to.pitch - z.from.pitch) * e;
+  if (k >= 1) turnAnim = null;
+}
+const WHITE = new THREE.Color(0xffffff), HAZE = new THREE.Color(0x8fa7bd);
+
+PLACES.forEach(buildLookItem);
+const compass = [["N", 0], ["NE", 45], ["E", 90], ["SE", 135], ["S", 180], ["SW", 225], ["W", 270], ["NW", 315]].map(([t, a]) => {
+  const el = document.createElement("div"); el.className = "compass" + (t.length > 1 ? " minor" : ""); el.textContent = t; el.setAttribute("aria-hidden", "true");
+  lookWrap.appendChild(el);
+  return { el, v: new THREE.Vector3(Math.sin(a * D), 0, -Math.cos(a * D)) };
+});
+const nadir = document.createElement("div"); nadir.className = "nadir"; nadir.setAttribute("aria-hidden", "true");
+nadir.textContent = "Straight down: the opposite side of the Earth"; lookWrap.appendChild(nadir);
+function fmtDist(km) { return useMiles ? `${Math.round(km * 0.621371).toLocaleString()} mi` : `${Math.round(km).toLocaleString()} km`; }
+function compassWord(b) { return ["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"][Math.round(b / 45) % 8]; }
+function setHere(c) {
+  here = c; $("where-txt").textContent = c[0];
+  try { localStorage.setItem("skyview-here", c[0]); } catch (e) {}
+  for (const it of lookItems) {
+    it.d = dirFor(c[1], c[2], it.p.lat, it.p.lon);
+    it.label.querySelector("small").textContent = fmtDist(it.d.km);
+    it.revealed = false; drawSil(it);
+  }
+  // nearer places float closer and look bigger, so they draw in front
+  layoutLook(); pinned = null; shownStack = null; focused = undefined;
+  const la = c[1] * D, lo = c[2] * D;
+  dome.material.uniforms.uE.value.set(-Math.sin(lo), Math.cos(lo), 0);
+  dome.material.uniforms.uN.value.set(-Math.sin(la) * Math.cos(lo), -Math.sin(la) * Math.sin(lo), Math.cos(la));
+  dome.material.uniforms.uU.value.set(Math.cos(la) * Math.cos(lo), Math.cos(la) * Math.sin(lo), Math.sin(la));
+  setBiome(c[3] || "prairie");
+}
+function aimNearest() {
+  const n = lookItems.reduce((a, b) => (b.d.km < a.d.km ? b : a));
+  look.yaw = n.d.brg; look.pitch = Math.max(-80, n.dispEl - 4);
+}
+setHere(here); aimNearest();
+function placeLookCamera() {
+  if (motion.on && motion.got) {
+    let dy = ((motion.yaw - look.yaw + 540) % 360) - 180;
+    look.yaw = (look.yaw + dy * 0.2 + 360) % 360; look.pitch += (motion.pitch - look.pitch) * 0.2;
+  }
+  camera.position.set(0, 0, 0);
+  const y = look.yaw * D, pt = look.pitch * D;
+  camera.up.set(0, 1, 0);
+  camera.lookAt(Math.sin(y) * Math.cos(pt), Math.sin(pt), -Math.cos(y) * Math.cos(pt));
+}
+const fwd = new THREE.Vector3();
+function updateLook(w, h) {
+  camera.getWorldDirection(fwd);
+  const dt = Math.min(0.05, (performance.now() - (updateLook.t || performance.now())) / 1000); updateLook.t = performance.now();
+  // what you are aiming at: the layer closest to the middle of the view
+  let best = null, bestA = 12;
+  for (const it of lookItems) {
+    const ang = Math.acos(Math.min(1, it.dv.dot(fwd))) / D;
+    if (ang < bestA) { bestA = ang; best = it; }
+  }
+  if (pinned && (!best || !pinned.stack || best.stack !== pinned.stack)) {
+    // a picked layer stays in focus until you aim somewhere else
+    if (Math.acos(Math.min(1, pinned.dv.dot(fwd))) / D > 20) pinned = null;
+  }
+  if (pinned) best = pinned;
+  const rev = lookItems.find((it) => it.revealed);
+  if (rev) best = rev;
+  const k = Math.min(1, dt * (reduce ? 60 : 4));
+  // labels: one per stack (the layer in focus, or the front one), avoiding overlaps
+  const boxes = [];
+  if (!$("focus").hidden) { const fr = $("focus").getBoundingClientRect(); boxes.push([fr.left - 10, fr.top - 50, fr.right + 10, fr.bottom]); }
+  const order = lookItems.map((it) => ({ it, f: it.dv.dot(fwd) })).sort((a, b) => b.f - a.f);
+  for (const { it, f } of order) {
+    const active = it.stack ? (best && best.stack === it.stack ? best : it.stack[0]) : it;
+    let show = it === active && f > Math.cos(Math.min(80, look.fov * 0.75) * D);
+    if (show) {
+      const s = it.holder.scale.x;
+      const below = new THREE.Vector3(0, -0.3 * s, 0).applyQuaternion(it.holder.quaternion).add(it.holder.position).project(camera);
+      const x = (below.x * 0.5 + 0.5) * w, y = (-below.y * 0.5 + 0.5) * h + 14;
+      const r = [x - 80, y - 4, x + 80, y + 40];
+      show = below.z < 1 && !boxes.some((q) => !(r[2] < q[0] || r[0] > q[2] || r[3] < q[1] || r[1] > q[3]));
+      if (show) {
+        boxes.push(r); it.label.style.transform = `translate(${x}px, ${y}px)`;
+        const more = it.stack ? it.stack.length - 1 : 0;
+        it.label.querySelector("small").textContent = fmtDist(it.d.km) + (more && it !== best ? ` · +${more} in line` : "");
+      }
+    }
+    it.label.hidden = !show;
+    // how strongly each layer shows: the one in focus is clear; the others in its
+    // stack fall back into blue haze; places elsewhere keep a soft presence
+    const inFocusStack = best && it.stack && best.stack === it.stack;
+    let op, tint;
+    if (it === best) { op = 1; tint = 0; }
+    else if (inFocusStack) { op = 0.2; tint = 1; }
+    else if (it.stack && it.layer > 0) { op = 0.32; tint = 0.8; }
+    else { op = 0.6; tint = 0.25; }
+    it.target = { op, tint };
+    it.tint = (it.tint ?? tint) + (tint - (it.tint ?? tint)) * k;
+    it.op = (it.op ?? op) + (op - (it.op ?? op)) * k;
+    const col = new THREE.Color().copy(WHITE).lerp(HAZE, it.tint);
+    if (it.ghostMat) { it.ghostMat.opacity = it.op * (it.art ? 0.5 : 0.95); it.ghostMat.color.copy(col); }
+    if (it.silMat) { it.silMat.opacity = it.ghostMat ? it.op * 0.15 : it.op; it.silMat.color.copy(col); }
+    if (it.art) { it.mat.opacity = Math.min(1, it.op + it.reveal); it.mat.color.copy(col); }
+    const target = it.revealed ? 1 : 0;
+    it.reveal += (target - it.reveal) * k;
+  }
+  if (best !== focused) {
+    focused = best;
+    const hud = $("focus");
+    if (focused) {
+      $("f-name").textContent = focused.p.name;
+      $("f-meta").textContent = `${CATS[focused.p.cat]} · ${fmtDist(focused.d.km)} ${compassWord(focused.d.brg)}${focused.d.el < -3 ? ", through the Earth" : ""}`;
+      $("f-go").setAttribute("aria-label", `Explore ${focused.p.name}`);
+      hud.hidden = false;
+    } else hud.hidden = true;
+  }
+  showStack(focused && focused.stack, focused);
+  // nothing in view: an arrow at the edge points to the nearest place by angle
+  const edge = $("edge");
+  const inView = lookItems.some((it) => it.dv.dot(fwd) > Math.cos(Math.min(60, look.fov * 0.45) * D));
+  if (!inView && !zoomAnim) {
+    const near = lookItems.reduce((a, b) => (b.dv.dot(fwd) > a.dv.dot(fwd) ? b : a));
+    const v = near.dv.clone().transformDirection(camera.matrixWorldInverse);
+    let sx = v.x, sy = v.y; const n = Math.hypot(sx, sy) || 1; sx /= n; sy /= n;
+    const mx = w / 2 - 70, my = h / 2 - 110, t = Math.min(mx / Math.max(1e-6, Math.abs(sx)), my / Math.max(1e-6, Math.abs(sy)));
+    edge.style.left = w / 2 + sx * t + "px"; edge.style.top = h / 2 - sy * t + "px";
+    edge.querySelector("i").style.transform = `rotate(${Math.atan2(-sy, sx)}rad)`;
+    const turn = Math.round(Math.acos(Math.min(1, near.dv.dot(fwd))) / D);
+    edge.querySelector("b").textContent = near.p.name; edge.querySelector("small").textContent = `${turn}° away`;
+    edge.hidden = false;
+  } else edge.hidden = true;
+  for (const c of compass) {
+    const f = c.v.dot(fwd);
+    tmp.copy(c.v).project(camera);
+    c.el.hidden = f < 0.2;
+    c.el.style.left = (tmp.x * 0.5 + 0.5) * w + "px"; c.el.style.top = (-tmp.y * 0.5 + 0.5) * h + "px";
+  }
+  queueGhosts();
+  const nv = new THREE.Vector3(0, -1, 0), nf = nv.dot(fwd);
+  nadir.hidden = nf < 0.6;
+  if (!nadir.hidden) { tmp.copy(nv).project(camera); nadir.style.left = (tmp.x * 0.5 + 0.5) * w + "px"; nadir.style.top = (-tmp.y * 0.5 + 0.5) * h + "px"; }
+}
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+function tapLook(x, y) {
+  ndc.set((x / innerWidth) * 2 - 1, -(y / innerHeight) * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  const hits = ray.intersectObjects(lookItems.map((it) => it.hit), false);
+  if (!hits.length) return;
+  const items = hits.map((h) => h.object.userData.item);
+  approach(items.includes(focused) ? focused : items.sort((a, b) => a.d.km - b.d.km)[0]);
+}
+function renderCities() {
+  const l = $("city-list"); l.innerHTML = "";
+  CITIES.forEach((c) => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "res";
+    b.innerHTML = "<b></b><span></span>"; b.querySelector("b").textContent = c[0];
+    b.querySelector("span").textContent = c === here ? "You are here" : "";
+    b.addEventListener("click", () => { setHere(c); aimNearest(); $("cities").hidden = true; $("where-btn").focus(); say(`Now standing in ${c[0]}`); });
+    l.appendChild(b);
+  });
+}
+$("where-btn").addEventListener("click", () => { renderCities(); $("cities").hidden = false; setTimeout(() => $("city-list").querySelector(".res").focus(), 30); });
+$("cities-close").addEventListener("click", () => { $("cities").hidden = true; $("where-btn").focus(); });
+function setBase(m) {
+  base = m; mode = m;
+  document.body.classList.toggle("look", m === "look");
+  $("m-look").setAttribute("aria-pressed", m === "look" ? "true" : "false");
+  $("m-globe").setAttribute("aria-pressed", m === "globe" ? "true" : "false");
+  $("hint").textContent = m === "look" ? (motion.on ? "Turn your phone to look around. Tap a place to go there." : "Drag to look around. Tap a place to go there.") : "Drag to spin the Earth. Tap a glowing dot to visit.";
+  $("hint").style.opacity = 1; setTimeout(hideHint, 9000);
+}
+$("m-look").addEventListener("click", () => { if (!fly) setBase("look"); });
+$("m-globe").addEventListener("click", () => { if (!fly) setBase("globe"); });
+
+// tapping a silhouette pulls you toward it: the view turns and zooms in, the
+// outline brightens, then the place opens as its full flyover
+let zoomAnim = null;
+function approach(it) {
+  if (zoomAnim || fly) return;
+  lookItems.forEach((o) => (o.revealed = o === it));
+  let dy = ((it.d.brg - look.yaw + 540) % 360) - 180;
+  zoomAnim = { it, t0: performance.now(), from: { ...look }, to: { yaw: look.yaw + dy, pitch: it.dispEl + 2, fov: 26 } };
+  say(`Going to ${it.p.name}`);
+}
+function stepZoom(now) {
+  if (!zoomAnim) return;
+  const z = zoomAnim, k = Math.min(1, (now - z.t0) / (reduce ? 1 : 1100)), e = ease(k);
+  look.yaw = (z.from.yaw + (z.to.yaw - z.from.yaw) * e + 360) % 360; look.pitch = z.from.pitch + (z.to.pitch - z.from.pitch) * e; look.fov = z.from.fov + (z.to.fov - z.from.fov) * e;
+  if (k >= 1) { zoomAnim = null; z.it.revealed = false; visit(z.it.p); setTimeout(() => (look.fov = z.from.fov), 600); }
+}
+$("f-go").addEventListener("click", () => { if (focused) approach(focused); });
+
+// ---------- place (flyover) scene ----------
+const placeScene = new THREE.Scene();
+const SKY = new THREE.Color(0xc9c8b8);
+placeScene.fog = new THREE.Fog(SKY, 1.0, 2.6);
+let terrain = null, current = null, paused = reduce, userHold = 0;
+const orbit = { angle: 0, pitch: 0.55, radius: 0.95, t0: 0 };
+const terrainMat = new THREE.ShaderMaterial({
+  transparent: true,
+  uniforms: { map: { value: null }, sunDir: { value: new THREE.Vector3(-0.5, 0.8, 0.3).normalize() }, fogColor: { value: SKY }, fogNear: { value: 1.0 }, fogFar: { value: 2.6 } },
+  vertexShader: `varying vec2 vUv; varying vec3 vN; varying float vDepth;
+    void main(){ vUv = uv; vN = normalize(normalMatrix*normal); vec4 p = modelViewMatrix*vec4(position,1.); vDepth = -p.z; gl_Position = projectionMatrix*p; }`,
+  fragmentShader: `uniform sampler2D map; uniform vec3 sunDir; uniform vec3 fogColor; uniform float fogNear; uniform float fogFar;
+    varying vec2 vUv; varying vec3 vN; varying float vDepth;
+    void main(){
+      vec3 c = texture2D(map, vUv).rgb;
+      float l = 0.86 + 0.28 * dot(normalize(vN), normalize((viewMatrix*vec4(sunDir,0.)).xyz));
+      c *= l;
+      float e = min(min(vUv.x, 1.-vUv.x), min(vUv.y, 1.-vUv.y));
+      float edge = smoothstep(0.0, 0.2, e);
+      float f = smoothstep(fogNear, fogFar, vDepth);
+      c = mix(c, fogColor, f*0.85);
+      gl_FragColor = vec4(c, edge);
+      #include <encodings_fragment>
+    }`,
+});
+placeScene.add(new THREE.AmbientLight(0xffffff, 1));
+
+const exagFor = (m) => Math.round(Math.max(1, Math.min(3, 0.09 / Math.max(1e-6, (m.elevMax - m.elevMin) / (m.km * 1000)))) * 10) / 10;
+const cache = new Map();
+function loadImg(src) { return new Promise((ok, no) => { const im = new Image(); im.onload = () => ok(im); im.onerror = no; im.src = src; }); }
+function loadPlaceAssets(p) {
+  if (cache.has(p.id)) return cache.get(p.id);
+  const pr = Promise.all([loadImg(`places/${p.id}-sat.jpg`), loadImg(`places/${p.id}-dem.png`)]).then(([sat, dem]) => {
+    const meta = VIEWS[p.id];
+    const G = dem.width, cv = document.createElement("canvas"); cv.width = G; cv.height = G;
+    const cx = cv.getContext("2d"); cx.drawImage(dem, 0, 0); const px = cx.getImageData(0, 0, G, G).data;
+    const geo = new THREE.PlaneGeometry(1, 1, G - 1, G - 1);
+    const pos = geo.attributes.position;
+    const range = (meta.elevMax - meta.elevMin), exag = exagFor(meta), scale = exag / (meta.km * 1000);
+    let maxH = 0;
+    for (let i = 0; i < G * G; i++) {
+      const q = (px[i * 4] * 256 + px[i * 4 + 1]) / 65535;
+      const hgt = q * range * scale; if (hgt > maxH) maxH = hgt;
+      pos.setZ(i, hgt);
+    }
+    geo.computeVertexNormals();
+    const tex = new THREE.Texture(sat); tex.needsUpdate = true; tex.encoding = THREE.sRGBEncoding; tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    return { geo, tex, maxH };
+  });
+  cache.set(p.id, pr);
+  pr.catch(() => cache.delete(p.id));
+  return pr;
+}
+function showTerrain(a) {
+  if (terrain) { placeScene.remove(terrain); }
+  const mat = terrainMat.clone(); mat.uniforms.map.value = a.tex;
+  terrain = new THREE.Mesh(a.geo, mat);
+  terrain.rotation.x = -Math.PI / 2;
+  terrain.userData.maxH = a.maxH;
+  placeScene.add(terrain);
+}
+function placeUser() { userHold = performance.now(); }
+
+function placeCamera(now) {
+  const m = terrain ? terrain.userData.maxH : 0.1;
+  const auto = !paused && now - userHold > 4500;
+  if (auto) orbit.angle += 0.00055 * Math.min(32, now - (orbit.last || now));
+  orbit.last = now;
+  // intro: descend from straight overhead (matching the globe) to an oblique view
+  let pitch = orbit.pitch, radius = orbit.radius;
+  const k = Math.min(1, (now - orbit.t0) / 3200), e = reduce ? 1 : 1 - Math.pow(1 - k, 3);
+  pitch = 1.45 + (orbit.pitch - 1.45) * e; radius = 1.5 + (orbit.radius - 1.5) * e;
+  const target = new THREE.Vector3(0, m * 0.35, 0);
+  camera.position.set(Math.sin(orbit.angle) * Math.cos(pitch) * radius, target.y + Math.sin(pitch) * radius, Math.cos(orbit.angle) * Math.cos(pitch) * radius);
+  camera.up.set(0, 1, 0);
+  camera.lookAt(target);
+}
+
+// ---------- views rendered from real data (ghosts and gallery) ----------
+// Draws a place's real terrain (satellite image on elevation data) from a chosen
+// compass direction into a picture with a transparent background.
+const offScene = new THREE.Scene(), offCam = new THREE.PerspectiveCamera(34, 2, 0.01, 10);
+const viewMat = new THREE.ShaderMaterial({
+  transparent: true, blending: THREE.CustomBlending,
+  blendSrc: THREE.OneFactor, blendDst: THREE.OneMinusSrcAlphaFactor, blendSrcAlpha: THREE.OneFactor, blendDstAlpha: THREE.OneMinusSrcAlphaFactor,
+  uniforms: { map: { value: null }, sunDir: { value: new THREE.Vector3(-0.45, 0.75, 0.4).normalize() } },
+  vertexShader: `varying vec2 vUv; varying vec3 vN; varying float vDepth;
+    void main(){ vUv = uv; vN = normalize(mat3(modelMatrix)*normal); vec4 p = modelViewMatrix*vec4(position,1.); vDepth = -p.z; gl_Position = projectionMatrix*p; }`,
+  fragmentShader: `uniform sampler2D map; uniform vec3 sunDir; varying vec2 vUv; varying vec3 vN; varying float vDepth;
+    void main(){
+      vec3 c = texture2D(map, vUv).rgb;
+      c *= 0.8 + 0.45 * max(0.0, dot(normalize(vN), sunDir));
+      float r = length(vUv - 0.5) * 2.0;
+      float a = 1.0 - smoothstep(0.6, 0.98, r);
+      c = mix(c, vec3(0.78, 0.82, 0.86), smoothstep(1.2, 2.3, vDepth) * 0.45);
+      c = pow(max(c, 0.0), vec3(1.0 / 2.2));
+      gl_FragColor = vec4(c * a, a);
+    }`,
+});
+let offMesh = null; const PHOTO = { fov: 40, dist: 0.62, up: 0.16, ahead: 0.08 };
+async function renderView(p, brg, W, H, photo) {
+  const a = await loadPlaceAssets(p);
+  if (offMesh) { offScene.remove(offMesh); offMesh.material.dispose(); }
+  const m = viewMat.clone(); m.uniforms.map.value = a.tex;
+  offMesh = new THREE.Mesh(a.geo, m); offMesh.rotation.x = -Math.PI / 2; const zx = photo ? 1 : 1.5; offMesh.scale.z = zx; offScene.add(offMesh);
+  const b = brg * D, mh = a.maxH * zx;
+  offCam.aspect = W / H; offCam.fov = photo ? PHOTO.fov : 34; offCam.updateProjectionMatrix();
+  // ghosts: low, seen across the horizon. photos: a raised viewpoint that fills the frame
+  const dist = photo ? PHOTO.dist : 1.12, up = photo ? mh + PHOTO.up : mh + 0.42;
+  offCam.position.set(-Math.sin(b) * dist, up, Math.cos(b) * dist);
+  offCam.up.set(0, 1, 0); offCam.lookAt(Math.sin(b) * (photo ? PHOTO.ahead : 0), mh * (photo ? 0.2 : 0.1) - (photo ? 0 : 0.04), -Math.cos(b) * (photo ? PHOTO.ahead : 0));
+  const rt = new THREE.WebGLRenderTarget(W, H); rt.texture.encoding = THREE.sRGBEncoding;
+  const prevClear = renderer.getClearAlpha(), prevColor = renderer.getClearColor(new THREE.Color());
+  renderer.setRenderTarget(rt); renderer.setClearColor(0x000000, 0); renderer.clear(); renderer.render(offScene, offCam); renderer.setRenderTarget(null);
+  renderer.setClearColor(prevColor, prevClear);
+  const buf = new Uint8Array(W * H * 4); renderer.readRenderTargetPixels(rt, 0, 0, W, H, buf); rt.dispose();
+  const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+  const g = cv.getContext("2d"), img = g.createImageData(W, H), d = img.data;
+  for (let y = 0; y < H; y++) {
+    const src = (H - 1 - y) * W * 4, dst = y * W * 4;
+    for (let i = 0; i < W * 4; i += 4) {
+      const al = buf[src + i + 3];
+      if (al) { const k = 255 / al; d[dst + i] = Math.min(255, buf[src + i] * k); d[dst + i + 1] = Math.min(255, buf[src + i + 1] * k); d[dst + i + 2] = Math.min(255, buf[src + i + 2] * k); }
+      d[dst + i + 3] = al;
+    }
+  }
+  g.putImageData(img, 0, 0);
+  return cv;
+}
+const sideWord = (b) => ["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"][Math.round((((b + 180) % 360) + 360) % 360 / 45) % 8];
+
+// ghosts: rendered lazily, one per frame, for places near where you are looking
+let ghostBusy = false;
+function queueGhosts() {
+  if (ghostBusy || mode !== "look") return;
+  const want = lookItems.filter((it) => it.d && it.ghostFor !== it.d.brg && it.dv.dot(fwd) > Math.cos(Math.min(85, look.fov) * D))
+    .sort((a, b) => b.dv.dot(fwd) - a.dv.dot(fwd))[0];
+  if (!want) return;
+  ghostBusy = true;
+  const brg = want.d.brg;
+  renderView(want.p, brg, 512, 256).then((cv) => {
+    want.ghostFor = brg;
+    if (!want.ghostTex) {
+      want.ghostTex = new THREE.CanvasTexture(cv); want.ghostTex.encoding = THREE.sRGBEncoding;
+      want.ghostMat = new THREE.MeshBasicMaterial({ map: want.ghostTex, transparent: true, depthWrite: false, opacity: 0, color: 0xe6eef5 });
+      const gm = new THREE.Mesh(new THREE.PlaneGeometry(1, 0.5), want.ghostMat); gm.position.y = -0.06; gm.renderOrder = 0; want.holder.add(gm);
+    } else { want.ghostTex.image = cv; want.ghostTex.needsUpdate = true; }
+  }).catch(() => { want.ghostFor = brg; }).finally(() => { ghostBusy = false; });
+}
+
+// ---------- gallery ----------
+let galleryItems = [], galleryShown = false;
+function showGallery(on) {
+  galleryShown = on;
+  if (current) $("g-3d").style.backgroundImage = on ? `url(places/${current.id}-thumb.jpg)` : (galleryItems[0] ? `url(${galleryItems[0].src})` : "");
+  document.body.classList.toggle("gallery", on);
+  $("g-3d").setAttribute("aria-label", on ? "Open the 3D flyover" : "Back to pictures");
+  $("g-3d-txt").textContent = on ? "3D flyover" : "Pictures";
+  if (!on) { orbit.t0 = performance.now(); userHold = 0; }
+}
+// Real photos from Wikimedia Commons, each credited to its photographer.
+// Places without photos fall back to the 3D views and the satellite photo.
+const PHOTOS = __PLACE_PHOTOS__;
+function addGalleryItem(item) {
+  const th = $("g-thumbs"), i = galleryItems.push(item) - 1;
+  const b = document.createElement("button"); b.type = "button"; b.setAttribute("aria-label", item.alt); b.setAttribute("aria-pressed", "false");
+  b.innerHTML = "<img alt=''>"; b.querySelector("img").src = item.small || item.src; b.addEventListener("click", () => pickGallery(i)); th.appendChild(b);
+  if (i === 0) pickGallery(0);
+}
+function pickGallery(i) {
+  const it = galleryItems[i]; if (!it) return;
+  $("g-img").src = it.src; $("g-img").alt = it.alt;
+  const cap = $("g-cap"); cap.textContent = it.cap;
+  if (it.page) cap.append(" ", Object.assign(document.createElement("a"), { href: it.page, target: "_blank", rel: "noopener", textContent: "Photo details" }));
+  $("g-thumbs").querySelectorAll("button").forEach((b, j) => b.setAttribute("aria-pressed", j === i ? "true" : "false"));
+}
+async function buildGallery(p, brg) {
+  const meta = VIEWS[p.id], token = (buildGallery.token = {});
+  galleryItems = [];
+  $("g-thumbs").innerHTML = "";
+  $("g-img").removeAttribute("src");
+  const photos = PHOTOS[p.id] || [];
+  if (photos.length) {
+    photos.forEach((ph) => addGalleryItem({ src: ph.src, small: ph.small, page: ph.page, alt: `Photo of ${p.name}`, cap: `Photo: ${ph.author} · ${ph.license} · Wikimedia Commons.` }));
+    return;
+  }
+  const date = new Date(meta.date + "T12:00:00Z").toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+  $("g-cap").textContent = "Drawing the view…";
+  const angles = [brg, brg + 90, brg + 180, brg + 270].map((a) => ((a % 360) + 360) % 360);
+  const W = Math.min(1600, Math.round(innerWidth * Math.min(2, devicePixelRatio || 1))), H = Math.round(W * 0.62);
+  for (let i = 0; i < angles.length; i++) {
+    let cv;
+    try { cv = await renderView(p, angles[i], W, H, true); } catch (e) { continue; }
+    if (token !== buildGallery.token) return;
+    // set the landscape against a soft sky
+    const out = document.createElement("canvas"); out.width = W; out.height = H; const g = out.getContext("2d");
+    const sky = g.createLinearGradient(0, 0, 0, H); sky.addColorStop(0, "#4f7590"); sky.addColorStop(0.55, "#a9bcc4"); sky.addColorStop(1, "#d9d3c4");
+    g.fillStyle = sky; g.fillRect(0, 0, W, H); g.drawImage(cv, 0, 0);
+    addGalleryItem({ src: out.toDataURL("image/jpeg", 0.88), alt: `${p.name} seen from the ${sideWord(angles[i])}`, cap: `${i === 0 ? "Your view: " : ""}${p.name} from the ${sideWord(angles[i])}. 3D view drawn from a real satellite image and elevation data${exagFor(meta) > 1 ? `, heights exaggerated ${exagFor(meta)}×` : ""}.` });
+  }
+  if (token !== buildGallery.token) return;
+  addGalleryItem({ src: `places/${p.id}-sat.jpg`, alt: `Satellite photo of ${p.name}`, cap: `Satellite photo of ${p.name}, ${date}. Contains modified Copernicus Sentinel-2 data. North is up; about ${meta.km} km across.` });
+}
+
+// ---------- phone motion and camera ----------
+// Turns the view with the phone and shows the camera behind it. Browsers only
+// allow this on a normal website or app; inside this preview both are refused.
+const motion = { on: false, yaw: 0, pitch: 0, got: false };
+function toast(t) { const el = $("toast"); el.textContent = t; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => (el.hidden = true), 6000); }
+function onOrient(e) {
+  let heading = null;
+  if (typeof e.webkitCompassHeading === "number") heading = e.webkitCompassHeading;
+  else if (e.absolute && typeof e.alpha === "number") heading = (360 - e.alpha) % 360;
+  if (heading === null || typeof e.beta !== "number") return;
+  motion.got = true;
+  const so = (screen.orientation && screen.orientation.angle) || 0;
+  motion.yaw = (heading + so + 360) % 360;
+  motion.pitch = Math.max(-89, Math.min(89, e.beta - 90));
+}
+async function startLive() {
+  if (motion.on) { stopLive(); return; }
+  let motionOk = false, camOk = false;
+  try {
+    if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function") {
+      motionOk = (await DeviceOrientationEvent.requestPermission()) === "granted";
+    } else motionOk = typeof DeviceOrientationEvent !== "undefined";
+  } catch (e) { motionOk = false; }
+  if (motionOk) { addEventListener("deviceorientationabsolute", onOrient); addEventListener("deviceorientation", onOrient); }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+    $("cam").srcObject = stream; await $("cam").play(); camOk = true; document.body.classList.add("camera");
+  } catch (e) { camOk = false; }
+  motion.on = true; $("motion-btn").setAttribute("aria-pressed", "true");
+  setTimeout(() => {
+    if (!motion.got && !camOk) { stopLive(); toast("Moving with your phone and seeing through the camera are blocked in this preview. They will work once the app runs as a normal website or phone app. For now, drag to look around."); }
+    else if (!motion.got) toast("Your camera is on, but this browser isn't sharing the compass. Drag to turn.");
+  }, 1500);
+}
+function stopLive() {
+  motion.on = false; motion.got = false; $("motion-btn").setAttribute("aria-pressed", "false");
+  removeEventListener("deviceorientationabsolute", onOrient); removeEventListener("deviceorientation", onOrient);
+  const s = $("cam").srcObject; if (s) s.getTracks().forEach((t) => t.stop()); $("cam").srcObject = null; document.body.classList.remove("camera");
+}
+
+// ---------- modes and transitions ----------
+let fly = null, saved = null;
+function visit(p) {
+  if (fly) return;
+  closeFinder(true);
+  hideHint();
+  if (mode === "place") { enterPlace(p, true); return; }
+  saved = { ...view };
+  if (mode === "look" || reduce) { say(`Going to ${p.name}`); enterPlace(p); return; }
+  
+  autoSpin = false;
+  const assets = loadPlaceAssets(p);
+  let dLon = ((p.lon - view.lon + 540) % 360) - 180;
+  fly = { from: { ...view }, to: { lat: p.lat, lon: view.lon + dLon, dist: 1.42 }, t0: performance.now(), dur: reduce ? 1 : 2100, p, assets };
+  say(`Flying to ${p.name}`);
+}
+function enterPlace(p, swap) {
+  const fade = $("fade");
+  fade.classList.add("on");
+  const t = setTimeout(() => $("loading").classList.add("on"), 900);
+  loadPlaceAssets(p).then((a) => {
+    clearTimeout(t); $("loading").classList.remove("on");
+    showTerrain(a);
+    current = p; mode = "place";
+    document.body.classList.add("in-place"); document.body.classList.remove("look");
+    orbit.angle = 0; orbit.pitch = 0.72; orbit.radius = 0.85; orbit.t0 = performance.now(); userHold = 0;
+    fillPanel(p);
+    const lk = lookItems.find((it) => it.p.id === p.id);
+    buildGallery(p, base === "look" && lk && lk.d ? lk.d.brg : 0);
+    showGallery(true);
+    setTimeout(() => fade.classList.remove("on"), 60);
+  }).catch(() => {
+    clearTimeout(t); $("loading").classList.remove("on"); fade.classList.remove("on");
+    say(`The landscape for ${p.name} could not load. Check your connection and try again.`);
+    $("loading").textContent = `Couldn't load ${p.name}. Try again.`; $("loading").classList.add("on");
+    setTimeout(() => { $("loading").classList.remove("on"); $("loading").textContent = "Loading the landscape…"; }, 3500);
+    if (!swap) { mode = base; document.body.classList.toggle("look", base === "look"); }
+  });
+}
+function backToWorld() {
+  if (mode !== "place") return;
+  const fade = $("fade"); fade.classList.add("on");
+  setTimeout(() => {
+    mode = base; document.body.classList.remove("in-place"); document.body.classList.toggle("look", base === "look"); showGallery(false); buildGallery.token = {};
+    $("panel").classList.remove("open", "tall"); $("panel").setAttribute("aria-hidden", "true");
+    if (saved && base === "globe") Object.assign(view, saved);
+    fade.classList.remove("on");
+    $("find").focus();
+    say(base === "look" ? "Back to looking around" : "Back to the globe");
+  }, 380);
+}
+$("back").addEventListener("click", backToWorld);
+$("g-3d").addEventListener("click", () => showGallery(!galleryShown));
+new MutationObserver(() => document.body.classList.toggle("panel-tall", $("panel").classList.contains("tall"))).observe($("panel"), { attributes: true, attributeFilter: ["class"] });
+$("motion-btn").addEventListener("click", startLive);
+// Phones start by asking to use motion (browsers only allow that after a tap).
+// Dragging stays available, and the choice to drag is remembered.
+(() => {
+  const touch = matchMedia("(pointer: coarse)").matches;
+  let pref = null; try { pref = localStorage.getItem("unknown-look-with"); } catch (e) {}
+  if (!touch || pref === "drag") return;
+  $("start").hidden = false; setTimeout(() => $("start-motion").focus(), 50);
+  const close = () => { $("start").hidden = true; };
+  $("start-motion").addEventListener("click", () => { close(); try { localStorage.setItem("unknown-look-with", "motion"); } catch (e) {} startLive(); });
+  $("start-drag").addEventListener("click", () => { close(); try { localStorage.setItem("unknown-look-with", "drag"); } catch (e) {} });
+})();
+
+// ---------- panel ----------
+function fillPanel(p) {
+  const meta = VIEWS[p.id];
+  $("p-cat").textContent = CATS[p.cat];
+  $("p-name").textContent = p.name;
+  $("p-where").textContent = p.town ? `${p.town} · ${p.country}` : `${p.country} · ${p.region}`;
+  $("p-intro").textContent = p.intro;
+  $("p-status").textContent = p.status;
+  $("p-formed").textContent = p.formed;
+  $("p-life").textContent = p.life;
+  $("p-people").textContent = p.people;
+  $("p-facts").innerHTML = "";
+  p.facts.forEach((f) => { const li = document.createElement("li"); li.textContent = f; $("p-facts").appendChild(li); });
+  const rel = $("p-related"); rel.innerHTML = "";
+  PLACES.filter((x) => x.id !== p.id && (x.cat === p.cat || x.region === p.region)).sort((a, b) => (b.cat === p.cat) - (a.cat === p.cat)).slice(0, 5).forEach((x) => {
+    const b = document.createElement("button"); b.type = "button"; b.textContent = x.name; b.addEventListener("click", () => visit(x)); rel.appendChild(b);
+  });
+  const date = new Date(meta.date + "T12:00:00Z").toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+  $("p-credit").innerHTML = "";
+  $("p-credit").append(
+    `Flyover: ${p.view} Real satellite image from ${date} (contains modified Copernicus Sentinel-2 data, ${meta.date.slice(0,4)}), draped over real elevation data. Area shown is about ${meta.km} × ${meta.km} km. ${exagFor(meta) > 1 ? `Heights are exaggerated ${exagFor(meta)}× so the shape reads clearly.` : "Heights are shown at true scale."} Elevation: Terrain Tiles on AWS (SRTM, USGS and other sources). `,
+    Object.assign(document.createElement("a"), { href: p.wiki, target: "_blank", rel: "noopener", textContent: "Read more on Wikipedia" }), "."
+  );
+  const panel = $("panel");
+  panel.classList.add("open"); panel.classList.remove("tall"); panel.setAttribute("aria-hidden", "false");
+  $("scroll").scrollTop = 0;
+  panel.querySelectorAll("details").forEach((d) => (d.open = false));
+  setTimeout(() => $("p-name").focus({ preventScroll: true }), 450);
+  say(`${p.name}. ${p.intro}`);
+  syncPause();
+}
+$("grip").addEventListener("click", () => { const t = $("panel").classList.toggle("tall"); $("grip").setAttribute("aria-label", t ? "Show less" : "Show more"); });
+$("scroll").addEventListener("click", (e) => { if (e.target.closest("summary") && innerWidth < 900) $("panel").classList.add("tall"); });
+function syncPause() {
+  $("pause").setAttribute("aria-pressed", paused ? "true" : "false");
+  $("pause-txt").textContent = paused ? "Play flyover" : "Pause flyover";
+  $("pause-ico").innerHTML = paused ? '<path d="M7 5l12 7-12 7z"/>' : '<rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/>';
+}
+$("pause").addEventListener("click", () => { paused = !paused; userHold = 0; syncPause(); });
+
+// ---------- finder ----------
+function renderResults(q) {
+  const r = $("results"); r.innerHTML = "";
+  const s = q.trim().toLowerCase();
+  const list = PLACES.filter((p) => !s || [p.name, p.country, p.region, CATS[p.cat]].join(" ").toLowerCase().includes(s));
+  if (!list.length) { r.innerHTML = `<p style="color:var(--mist);padding:12px 4px">No places match “${s.replace(/[<>&]/g, "")}”. Try a country, like Peru, or a kind of place, like waterfall.</p>`; return; }
+  const groups = {};
+  list.forEach((p) => (groups[p.region] = groups[p.region] || []).push(p));
+  Object.keys(groups).sort().forEach((g) => {
+    const h = document.createElement("h4"); h.textContent = g; r.appendChild(h);
+    groups[g].sort((a, b) => a.name.localeCompare(b.name)).forEach((p) => {
+      const b = document.createElement("button"); b.type = "button"; b.className = "res";
+      b.innerHTML = `<b></b><span></span>`; b.querySelector("b").textContent = p.name; b.querySelector("span").textContent = `${CATS[p.cat]} · ${p.country}`;
+      b.addEventListener("click", () => visit(p)); r.appendChild(b);
+    });
+  });
+}
+function openFinder() { $("finder").hidden = false; $("q").value = ""; renderResults(""); setTimeout(() => $("q").focus(), 30); }
+function closeFinder(silent) { if ($("finder").hidden) return; $("finder").hidden = true; if (!silent) $("find").focus(); }
+$("find").addEventListener("click", openFinder);
+$("find-close").addEventListener("click", () => closeFinder());
+$("q").addEventListener("input", (e) => renderResults(e.target.value));
+$("q").addEventListener("keydown", (e) => { if (e.key === "Enter") { const first = $("results").querySelector(".res"); if (first) first.click(); } });
+
+function say(t) { $("live").textContent = ""; setTimeout(() => ($("live").textContent = t), 30); }
+
+// ---------- loop ----------
+function resize() {
+  const w = innerWidth, h = innerHeight;
+  renderer.setSize(w, h, false); camera.aspect = w / h;
+  camera.fov = w < 600 ? 50 : 40;
+  camera.updateProjectionMatrix();
+}
+addEventListener("resize", resize); resize();
+const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+function frame(now) {
+  requestAnimationFrame(frame);
+  const w = innerWidth, h = innerHeight;
+  if (mode !== "look") { const want = w < 600 ? 50 : 40; if (camera.fov !== want) { camera.fov = want; camera.updateProjectionMatrix(); } }
+  if (mode === "globe") {
+    if (fly) {
+      const k = Math.min(1, (now - fly.t0) / fly.dur), e = ease(k);
+      view.lat = fly.from.lat + (fly.to.lat - fly.from.lat) * e;
+      view.lon = fly.from.lon + (fly.to.lon - fly.from.lon) * e;
+      const lift = Math.sin(Math.PI * e) * 0.35 * Math.min(1, Math.abs(fly.to.lon - fly.from.lon) / 90);
+      view.dist = fly.from.dist + (fly.to.dist - fly.from.dist) * e + lift;
+      if (k >= 1) { const p = fly.p; fly = null; enterPlace(p); }
+    } else if (autoSpin) view.lon += 0.012;
+    camera.clearViewOffset();
+    placeGlobeCamera();
+    renderer.setClearColor(0x081113, 1);
+    renderer.render(globeScene, camera);
+    updatePins(w, h);
+  } else if (mode === "look") {
+    stepZoom(now); stepTurn(now);
+    camera.clearViewOffset();
+    placeLookCamera();
+    if (camera.fov !== look.fov) { camera.fov = look.fov; camera.updateProjectionMatrix(); }
+    dome.visible = biomeMesh.visible = !document.body.classList.contains("camera");
+    renderer.setClearColor(0x081113, dome.visible ? 1 : 0);
+    renderer.render(lookScene, camera);
+    updateLook(w, h);
+  } else if (galleryShown) {
+    // the gallery covers the screen; skip drawing the flyover underneath
+  } else {
+    placeCamera(now);
+    const open = $("panel").classList.contains("open");
+    if (open && w >= 900) camera.setViewOffset(w, h, 220, 0, w, h);
+    else if (open) camera.setViewOffset(w, h, 0, h * ($("panel").classList.contains("tall") ? 0.34 : 0.2), w, h);
+    else camera.clearViewOffset();
+    renderer.setClearColor(0x000000, 0);
+    renderer.render(placeScene, camera);
+  }
+}
+requestAnimationFrame(frame);
+setTimeout(hideHint, 12000);
+})();
+</script>
