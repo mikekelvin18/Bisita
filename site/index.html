@@ -130,6 +130,17 @@ body:not(.look) #edge, body.in-place #edge { display: none; }
 .start-card p { margin: 0 0 6px; color: var(--mist); font-size: 16px; line-height: 1.45; }
 .start-card .btn { justify-content: center; width: 100%; min-height: 50px; font-size: 16px; }
 #motion-btn { display: none; }
+#side { position: fixed; z-index: 4; right: max(16px, env(safe-area-inset-right, 0px)); top: calc(84px + env(safe-area-inset-top, 0px)); display: none; flex-direction: column; gap: 10px; }
+body.look:not(.in-place) #side { display: flex; }
+.btn.round { width: 52px; height: 52px; min-height: 52px; padding: 0; justify-content: center; flex-direction: column; gap: 0; border-radius: 26px; font-size: 11px; letter-spacing: .06em; }
+.btn.round span { line-height: 1; margin-top: 2px; }
+#ar-btn[aria-pressed="true"] { background: var(--sand); color: #1d1408; border-color: var(--sand); }
+body.ar #theme-btn { display: none; }
+/* AR: names sit on solid tags so they read over any camera picture */
+body.ar .olabel b { display: inline-block; background: rgba(8,17,19,.78); padding: 4px 10px; border-radius: 8px; text-shadow: none; }
+body.ar .olabel small { display: inline-block; margin-top: 3px; background: rgba(8,17,19,.6); padding: 1px 8px; border-radius: 6px; color: var(--stone); text-shadow: none; }
+body.ar .compass { background: rgba(8,17,19,.6); padding: 2px 7px; border-radius: 6px; text-shadow: none; }
+body.day.look:not(.ar) .compass, body.day.look:not(.ar) .olabel b { color: #fffdf6; }
 body.look #motion-btn { display: inline-flex; }
 #motion-btn[aria-pressed="true"] { background: var(--sand); color: #1d1408; border-color: var(--sand); }
 #cam { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; display: none; }
@@ -284,6 +295,13 @@ a { color: var(--sea); }
   </button>
 </header>
 
+<div id="side" role="group" aria-label="View style">
+  <button class="btn round" id="ar-btn" type="button" aria-pressed="false" aria-label="AR: show places over your camera">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8V6a2 2 0 0 1 2-2h2M17 4h2a2 2 0 0 1 2 2v2M21 16v2a2 2 0 0 1-2 2h-2M7 20H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3.2"/></svg>
+    <span>AR</span>
+  </button>
+  <button class="btn round" id="theme-btn" type="button" aria-label="Switch to day sky"></button>
+</div>
 <p id="hint">Drag to look around. Tap a silhouette to go there.</p>
 <nav class="chips" id="chips" aria-label="Show only"></nav>
 
@@ -483,6 +501,7 @@ stage.addEventListener("pointermove", (e) => {
     const k = 0.12 * (view.dist - 1) ;
     view.lon -= dx * k; view.lat = Math.max(-80, Math.min(80, view.lat + dy * k));
   } else if (mode === "look") {
+    if (motion.on && motion.got) return;
     const k = look.fov / innerHeight; turnAnim = null;
     look.yaw = (look.yaw - dx * k + 360) % 360; look.pitch = Math.max(-89, Math.min(89, look.pitch + dy * k));
   } else if (mode === "place") {
@@ -528,7 +547,11 @@ const CITIES = [
   ["Mumbai", 19.08, 72.88, "tropical"], ["Manila", 14.60, 120.98, "tropical"], ["Singapore", 1.35, 103.82, "tropical"], ["Tokyo", 35.68, 139.69, "city"], ["Sydney", -33.87, 151.21, "coast"],
 ];
 let here = CITIES[0];
-try { const s = JSON.parse(localStorage.getItem("skyview-here") || "null"); const c = s && CITIES.find((x) => x[0] === s); if (c) here = c; } catch (e) {}
+try {
+  const s = JSON.parse(localStorage.getItem("skyview-here") || "null");
+  if (Array.isArray(s) && typeof s[1] === "number") here = s;
+  else { const c = s && CITIES.find((x) => x[0] === s); if (c) here = c; }
+} catch (e) {}
 const useMiles = /^en-(US|GB|LR|MM)$/i.test(navigator.language || "");
 const lookScene = new THREE.Scene();
 // Below the horizon the dome shows the real planet: each direction is traced
@@ -537,16 +560,16 @@ const lookScene = new THREE.Scene();
 const landTex = loader.load("earth-land.png");
 const dome = new THREE.Mesh(new THREE.SphereGeometry(50, 64, 48), new THREE.ShaderMaterial({
   side: THREE.BackSide, depthWrite: false, extensions: { derivatives: true },
-  uniforms: { earthMap: { value: landTex }, uE: { value: new THREE.Vector3() }, uN: { value: new THREE.Vector3() }, uU: { value: new THREE.Vector3() } },
+  uniforms: { uDay: { value: 0 }, earthMap: { value: landTex }, uE: { value: new THREE.Vector3() }, uN: { value: new THREE.Vector3() }, uU: { value: new THREE.Vector3() } },
   vertexShader: "varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.); }",
-  fragmentShader: `varying vec3 vP; uniform sampler2D earthMap; uniform vec3 uE; uniform vec3 uN; uniform vec3 uU;
+  fragmentShader: `varying vec3 vP; uniform float uDay; uniform sampler2D earthMap; uniform vec3 uE; uniform vec3 uN; uniform vec3 uU;
     void main(){
       vec3 d = normalize(vP); float y = d.y;
-      vec3 zen = vec3(0.035,0.075,0.11), hor = vec3(0.30,0.40,0.45);
+      vec3 zen = mix(vec3(0.035,0.075,0.11), vec3(0.20,0.45,0.78), uDay), hor = mix(vec3(0.30,0.40,0.45), vec3(0.86,0.90,0.86), uDay);
       vec3 sky = mix(hor, zen, pow(smoothstep(0.0, 0.75, y), 0.7));
       float el = degrees(asin(clamp(y,-1.,1.)));
       float az = degrees(atan(d.x, -d.z));
-      vec3 deep = mix(vec3(0.075,0.085,0.07), vec3(0.02,0.03,0.035), smoothstep(0.0, -1.0, y));
+      vec3 deep = mix(mix(vec3(0.075,0.085,0.07), vec3(0.02,0.03,0.035), smoothstep(0.0, -1.0, y)), mix(vec3(0.36,0.46,0.27), vec3(0.12,0.20,0.13), smoothstep(0.0, -1.0, y)), uDay);
       float ring = 1.0 - smoothstep(0.0, 0.18, abs(fract(el / 15.0 + 0.5) - 0.5) * 15.0);
       float spoke = (1.0 - smoothstep(0.0, 0.18, abs(fract(az / 30.0 + 0.5) - 0.5) * 30.0 * cos(radians(el)))) * step(el, -2.0) * step(-86.0, el);
       vec3 ground = deep + vec3(0.25,0.32,0.30) * max(ring, spoke) * 0.22;
@@ -567,7 +590,11 @@ const dome = new THREE.Mesh(new THREE.SphereGeometry(50, 64, 48), new THREE.Shad
       }
       vec3 c = y > 0.0 ? sky : ground;
       float hl = exp(-abs(y) * 140.0);
-      c += vec3(0.89,0.68,0.42) * hl * 0.9;
+      c += vec3(0.89,0.68,0.42) * hl * mix(0.9, 0.35, uDay);
+      // stars at night
+      vec3 cell = floor(d * 300.0);
+      float st = step(0.9975, fract(sin(dot(cell, vec3(12.9898, 78.233, 45.164))) * 43758.5453));
+      c += vec3(0.85, 0.88, 0.95) * st * (1.0 - uDay) * smoothstep(0.03, 0.25, y) * 0.7;
       gl_FragColor = vec4(c, 1.0);
       #include <encodings_fragment>
     }`,
@@ -682,6 +709,8 @@ function setBiome(kind) {
 }
 
 const look = { yaw: 0, pitch: -8, fov: 70 };
+let ar = false, theme = "night";
+try { if (localStorage.getItem("bisita-theme") === "day") theme = "day"; } catch (e) {}
 const lookWrap = $("look");
 function dirFor(lat1, lon1, lat2, lon2) {
   const p1 = lat1 * D, p2 = lat2 * D, dl = (lon2 - lon1) * D;
@@ -840,6 +869,7 @@ function drawSil(it) {
 // the distance. Aiming at a layer pulls it into focus.
 // rough width of each built landmark, so up close it shows at its real size
 const BUILT_KM = { "eiffel-tower": 0.33, "taj-mahal": 0.3, giza: 1.2, petra: 0.08, "angkor-wat": 1.5, "great-wall": 2 };
+const AR_GROW = 1.8; // in AR, places draw bigger so they hold up over a busy camera picture
 function layoutLook() {
   const its = lookItems.slice().sort((a, b) => a.d.km - b.d.km);
   for (const it of its) {
@@ -882,7 +912,7 @@ function layoutLook() {
       it.dv = new THREE.Vector3(Math.sin(b) * Math.cos(e), Math.sin(e), -Math.cos(b) * Math.cos(e));
       it.holder.position.copy(it.dv).multiplyScalar(it.r);
       it.holder.up.set(0, 1, 0); it.holder.lookAt(0, 0, 0);
-      it.holder.scale.setScalar(2 * it.r * Math.tan((it.w / 2) * D));
+      it.holder.scale.setScalar(2 * it.r * Math.tan((Math.min(150, it.w * (ar ? AR_GROW : 1)) / 2) * D));
     });
   }
 }
@@ -933,7 +963,7 @@ function fmtDist(km) { return useMiles ? `${Math.round(km * 0.621371).toLocaleSt
 function compassWord(b) { return ["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"][Math.round(b / 45) % 8]; }
 function setHere(c) {
   here = c; $("where-txt").textContent = c[0];
-  try { localStorage.setItem("skyview-here", c[0]); } catch (e) {}
+  try { localStorage.setItem("skyview-here", JSON.stringify(c[0] === "Your location" ? c : c[0])); } catch (e) {}
   for (const it of lookItems) {
     it.d = dirFor(c[1], c[2], it.p.lat, it.p.lon);
     it.label.querySelector("small").textContent = fmtDist(it.d.km);
@@ -953,11 +983,17 @@ function aimNearest() {
 }
 setHere(here); aimNearest();
 function placeLookCamera() {
-  if (motion.on && motion.got) {
-    let dy = ((motion.yaw - look.yaw + 540) % 360) - 180;
-    look.yaw = (look.yaw + dy * 0.2 + 360) % 360; look.pitch += (motion.pitch - look.pitch) * 0.2;
-  }
   camera.position.set(0, 0, 0);
+  if (motion.on && motion.got && !zoomAnim) {
+    turnAnim = null;
+    if (!placeLookCamera.live) { camera.quaternion.copy(motion.q); placeLookCamera.live = true; }
+    else camera.quaternion.slerp(motion.q, 0.35);
+    const f = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+    look.pitch = Math.asin(Math.max(-1, Math.min(1, f.y))) / D;
+    look.yaw = (Math.atan2(f.x, -f.z) / D + 360) % 360;
+    return;
+  }
+  placeLookCamera.live = false;
   const y = look.yaw * D, pt = look.pitch * D;
   camera.up.set(0, 1, 0);
   camera.lookAt(Math.sin(y) * Math.cos(pt), Math.sin(pt), -Math.cos(y) * Math.cos(pt));
@@ -1005,6 +1041,7 @@ function updateLook(w, h) {
     const inFocusStack = best && it.stack && best.stack === it.stack;
     let op, tint;
     if (it === best) { op = 1; tint = 0; }
+    else if (ar) { op = inFocusStack ? 0.45 : it.stack && it.layer > 0 ? 0.6 : 0.92; tint = 0; }
     else if (inFocusStack) { op = 0.2; tint = 1; }
     else if (it.stack && it.layer > 0) { op = 0.32; tint = 0.8; }
     else { op = 0.6; tint = 0.25; }
@@ -1012,7 +1049,7 @@ function updateLook(w, h) {
     it.tint = (it.tint ?? tint) + (tint - (it.tint ?? tint)) * k;
     it.op = (it.op ?? op) + (op - (it.op ?? op)) * k;
     const col = new THREE.Color().copy(WHITE).lerp(HAZE, it.tint);
-    if (it.ghostMat) { it.ghostMat.opacity = it.op * (it.art ? 0.5 : 0.95); it.ghostMat.color.copy(col); }
+    if (it.ghostMat) { it.ghostMat.opacity = it.op * (ar ? 1 : it.art ? 0.5 : 0.95); it.ghostMat.color.copy(col); }
     if (it.silMat) { it.silMat.opacity = it.ghostMat ? 0 : it.op; it.silMat.color.copy(col); }
     if (it.art) { it.mat.opacity = Math.min(1, it.op + it.reveal); it.mat.color.copy(col); }
     const target = it.revealed ? 1 : 0;
@@ -1084,7 +1121,7 @@ function setBase(m) {
   document.body.classList.toggle("look", m === "look");
   $("m-look").setAttribute("aria-pressed", m === "look" ? "true" : "false");
   $("m-globe").setAttribute("aria-pressed", m === "globe" ? "true" : "false");
-  $("hint").textContent = m === "look" ? (motion.on ? "Turn your phone to look around. Tap a place to go there." : "Drag to look around. Tap a place to go there.") : "Drag to spin the Earth. Tap a glowing dot to visit.";
+  $("hint").textContent = m === "look" ? (motion.on && motion.got ? "Turn your phone to look around. Tap a place to go there." : "Drag to look around. Tap a place to go there.") : "Drag to spin the Earth. Tap a glowing dot to visit.";
   $("hint").style.opacity = 1; setTimeout(hideHint, 9000);
 }
 $("m-look").addEventListener("click", () => { if (!fly) setBase("look"); });
@@ -1318,41 +1355,81 @@ async function buildGallery(p, brg) {
 // ---------- phone motion and camera ----------
 // Turns the view with the phone and shows the camera behind it. Browsers only
 // allow this on a normal website or app; inside this preview both are refused.
-const motion = { on: false, yaw: 0, pitch: 0, got: false };
-function toast(t) { const el = $("toast"); el.textContent = t; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => (el.hidden = true), 6000); }
+const motion = { on: false, got: false, abs: false, q: new THREE.Quaternion(), off: null };
+function toast(t, ms = 6000) { const el = $("toast"); el.textContent = t; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => (el.hidden = true), ms); }
+// The phone's full rotation (heading, tilt and roll) becomes the camera's rotation,
+// the way SkyView does it. The gyro gives smooth motion; the compass only slowly
+// corrects which way is north, so the places stay pinned to the real directions.
+const ZEE = new THREE.Vector3(0, 0, 1), EUL = new THREE.Euler(), Q0 = new THREE.Quaternion(), Q1 = new THREE.Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5));
+function screenAngle() { return ((screen.orientation && screen.orientation.angle) ?? window.orientation ?? 0) * D; }
 function onOrient(e) {
-  let heading = null;
-  if (typeof e.webkitCompassHeading === "number") heading = e.webkitCompassHeading;
-  else if (e.absolute && typeof e.alpha === "number") heading = (360 - e.alpha) % 360;
-  if (heading === null || typeof e.beta !== "number") return;
+  if (typeof e.alpha !== "number" || typeof e.beta !== "number" || typeof e.gamma !== "number") return;
+  let alpha;
+  if (typeof e.webkitCompassHeading === "number" && e.webkitCompassHeading >= 0) {
+    // iPhone: alpha is relative to wherever the phone pointed at start; the compass
+    // heading says where north really is. Keep a slowly-averaged correction.
+    const want = (360 - e.webkitCompassHeading - e.alpha + 720) % 360;
+    if (motion.off === null) motion.off = want;
+    else {
+      const diff = ((want - motion.off + 540) % 360) - 180;
+      motion.off = (motion.off + diff * (Math.abs(diff) > 25 ? 0.02 : 0.06) + 360) % 360;
+    }
+    alpha = e.alpha + motion.off;
+  } else if (e.type === "deviceorientationabsolute" || e.absolute) {
+    motion.abs = true; alpha = e.alpha;
+  } else {
+    if (motion.abs) return;          // Android: the absolute stream is the one to trust
+    alpha = e.alpha;                 // no compass at all: still turns, north may be off
+  }
+  EUL.set(e.beta * D, alpha * D, -e.gamma * D, "YXZ");
+  motion.q.setFromEuler(EUL).multiply(Q1).multiply(Q0.setFromAxisAngle(ZEE, -screenAngle()));
   motion.got = true;
-  const so = (screen.orientation && screen.orientation.angle) || 0;
-  motion.yaw = (heading + so + 360) % 360;
-  motion.pitch = Math.max(-89, Math.min(89, e.beta - 90));
 }
-async function startLive() {
-  if (motion.on) { stopLive(); return; }
-  let motionOk = false, camOk = false;
+async function askMotion() {
+  // must run straight from a tap on iPhone
   try {
-    if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function") {
-      motionOk = (await DeviceOrientationEvent.requestPermission()) === "granted";
-    } else motionOk = typeof DeviceOrientationEvent !== "undefined";
-  } catch (e) { motionOk = false; }
-  if (motionOk) { addEventListener("deviceorientationabsolute", onOrient); addEventListener("deviceorientation", onOrient); }
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
-    $("cam").srcObject = stream; await $("cam").play(); camOk = true; document.body.classList.add("camera");
-  } catch (e) { camOk = false; }
-  motion.on = true; $("motion-btn").setAttribute("aria-pressed", "true");
-  setTimeout(() => {
-    if (!motion.got && !camOk) { stopLive(); toast(window.self !== window.top ? "Moving with your phone and the camera are blocked in this preview. Open the Bisita website on your phone to use them. For now, drag to look around." : "This browser didn't allow motion or the camera. Check that you tapped Allow, or drag to look around."); }
-    else if (!motion.got) toast("Your camera is on, but this browser isn't sharing the compass. Drag to turn.");
-  }, 1500);
+    if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function")
+      return (await DeviceOrientationEvent.requestPermission()) === "granted";
+    return typeof DeviceOrientationEvent !== "undefined";
+  } catch (e) { return false; }
 }
-function stopLive() {
+function motionOn(ok) {
+  if (!ok) { toast(window.self !== window.top ? "Moving with your phone is blocked in this preview. Open the Bisita website on your phone. For now, drag to look around." : "Motion wasn't allowed, so drag to look around. To allow it, close this tab, open the site again and tap Allow.", 10000); return; }
+  if (motion.on) return;
+  motion.on = true; motion.got = false; motion.off = null; motion.abs = false;
+  addEventListener("deviceorientationabsolute", onOrient); addEventListener("deviceorientation", onOrient);
+  $("motion-btn").setAttribute("aria-pressed", "true");
+  setTimeout(() => { if (motion.on && !motion.got) toast("This phone isn't sending motion yet. Drag to look around."); }, 2500);
+}
+function motionOff() {
   motion.on = false; motion.got = false; $("motion-btn").setAttribute("aria-pressed", "false");
   removeEventListener("deviceorientationabsolute", onOrient); removeEventListener("deviceorientation", onOrient);
-  const s = $("cam").srcObject; if (s) s.getTracks().forEach((t) => t.stop()); $("cam").srcObject = null; document.body.classList.remove("camera");
+}
+async function toggleMotion() { if (motion.on) motionOff(); else motionOn(await askMotion()); }
+// AR: the camera picture behind the places. Sky view: the drawn sky and ground.
+async function setAR(on) {
+  if (on) {
+    if (!motion.on) motionOn(await askMotion());
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+      $("cam").srcObject = stream; await $("cam").play();
+    } catch (e) { toast("The camera wasn't allowed, so you're in Sky view. Check Settings › Safari › Camera, then try AR again.", 10000); on = false; }
+  }
+  if (!on) { const s = $("cam").srcObject; if (s) s.getTracks().forEach((t) => t.stop()); $("cam").srcObject = null; }
+  ar = on;
+  document.body.classList.toggle("camera", on); document.body.classList.toggle("ar", on);
+  $("ar-btn").setAttribute("aria-pressed", on ? "true" : "false");
+  layoutLook(); focused = undefined;
+  say(on ? "AR view: places over your camera" : "Sky view");
+}
+// Day or night sky in Sky view
+const SUN_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>';
+const MOON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>';
+function setTheme(t) {
+  theme = t; document.body.classList.toggle("day", t === "day");
+  $("theme-btn").setAttribute("aria-label", t === "day" ? "Switch to night sky" : "Switch to day sky");
+  $("theme-btn").innerHTML = t === "day" ? MOON_SVG : SUN_SVG;
+  try { localStorage.setItem("bisita-theme", t); } catch (e) {}
 }
 
 // ---------- modes and transitions ----------
@@ -1409,29 +1486,50 @@ function backToWorld() {
 $("back").addEventListener("click", backToWorld);
 $("g-3d").addEventListener("click", () => showGallery(!galleryShown));
 new MutationObserver(() => document.body.classList.toggle("panel-tall", $("panel").classList.contains("tall"))).observe($("panel"), { attributes: true, attributeFilter: ["class"] });
-$("motion-btn").addEventListener("click", startLive);
+$("motion-btn").addEventListener("click", toggleMotion);
+$("ar-btn").addEventListener("click", () => setAR(!ar));
+$("theme-btn").addEventListener("click", () => setTheme(theme === "day" ? "night" : "day"));
+$("toast").addEventListener("click", () => ($("toast").hidden = true));
 // Bisita starts from where you are: the first screen asks for your location
 // (and, on phones, motion and the camera, which browsers only allow after a tap).
-function locate(done) {
-  if (!navigator.geolocation) { toast("This browser can't share your location. Pick the closest city instead."); return done && done(false); }
+const inApp = /GitHub|FBAN|FBAV|Instagram|Line\/|Twitter|LinkedInApp|GSA\/|Snapchat|wv\)/i.test(navigator.userAgent);
+function locate(done, tries = 0) {
+  if (!navigator.geolocation) { toast("This browser can't share your location. Pick the closest city instead.", 12000); return done && done(false); }
+  $("where-txt").textContent = "Finding you…";
   navigator.geolocation.getCurrentPosition((pos) => {
     const { latitude: la, longitude: lo } = pos.coords;
     // the local ground layer borrows the look of the nearest listed city
     const nearest = CITIES.reduce((a, c) => (dirFor(la, lo, c[1], c[2]).km < dirFor(la, lo, a[1], a[2]).km ? c : a));
     setHere(["Your location", la, lo, nearest[3]]); aimNearest(); say("Now standing at your location");
     done && done(true);
-  }, () => { toast("Location isn't available, so you're standing in " + here[0] + ". Tap the place button at the top to change it."); done && done(false); },
-  { enableHighAccuracy: false, timeout: 12000, maximumAge: 600000 });
+  }, (err) => {
+    // timed out or no fix yet: try once more, asking the GPS directly
+    if (err.code !== 1 && tries < 1) return locate(done, tries + 1);
+    $("where-txt").textContent = here[0];
+    const ios = /iPhone|iPad/.test(navigator.userAgent);
+    let msg;
+    if (err.code === 1) msg = inApp ? "This app's built-in browser can't share your location. Tap ••• and choose Open in Safari (or Chrome)."
+      : ios ? "Location is turned off for websites. Open Settings › Privacy & Security › Location Services › Safari Websites, choose While Using, then reload Bisita."
+      : "Location was blocked for this site. Allow it in your browser's site settings, then reload.";
+    else msg = "Your phone couldn't find a location fix. Try again outside, or pick the closest city.";
+    toast(msg, 15000); done && done(false);
+  }, { enableHighAccuracy: tries > 0, timeout: tries > 0 ? 20000 : 10000, maximumAge: 600000 });
 }
 (async () => {
   const touch = matchMedia("(pointer: coarse)").matches;
+  setTheme(theme);
   let state = "prompt";
   try { state = (await navigator.permissions.query({ name: "geolocation" })).state; } catch (e) {}
   // someone who already allowed location on a computer goes straight in
   if (state === "granted" && !touch) { locate(); return; }
   $("start").hidden = false; setTimeout(() => $("start-motion").focus(), 50);
   const close = () => { $("start").hidden = true; };
-  $("start-motion").addEventListener("click", () => { close(); locate(); if (touch) startLive(); });
+  // one permission at a time: iPhone shows a single prompt and can drop the others
+  $("start-motion").addEventListener("click", async () => {
+    close();
+    if (touch) motionOn(await askMotion());
+    locate();
+  });
   $("start-drag").addEventListener("click", () => { close(); renderCities(); $("cities").hidden = false; });
 })();
 
@@ -1534,6 +1632,7 @@ function frame(now) {
     placeLookCamera();
     if (camera.fov !== look.fov) { camera.fov = look.fov; camera.updateProjectionMatrix(); }
     dome.visible = biomeMesh.visible = !document.body.classList.contains("camera");
+    { const u = dome.material.uniforms.uDay, t = theme === "day" ? 1 : 0; u.value += (t - u.value) * 0.08; biomeMat.color.setRGB(1 - 0.55 * u.value, 1 - 0.35 * u.value, 1 - 0.6 * u.value); }
     renderer.setClearColor(0x081113, dome.visible ? 1 : 0);
     renderer.render(lookScene, camera);
     updateLook(w, h);
