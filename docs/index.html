@@ -1238,7 +1238,10 @@ function queueGhosts() {
   if (!want) return;
   ghostBusy = true;
   const brg = want.d.brg;
-  renderView(want.p, brg, 512, 256, false, 1 - (want.near || 0)).then((cv) => {
+  // every place is drawn from eye level, the way you'd see it standing in front of
+  // it; only flat places (reefs, plains) get a little height so they still read
+  const vm = VIEWS[want.p.id], relief = vm ? (vm.elevMax - vm.elevMin) / (vm.km * 1000) : 0.05;
+  renderView(want.p, brg, 512, 256, false, Math.max(0.08, Math.min(0.5, 0.5 - relief * 6))).then((cv) => {
     want.ghostFor = brg;
     if (!want.ghostTex) {
       want.ghostTex = new THREE.CanvasTexture(cv); want.ghostTex.encoding = THREE.sRGBEncoding;
