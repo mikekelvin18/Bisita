@@ -100,7 +100,17 @@ body.look::after { content: ""; position: fixed; left: 0; right: 0; bottom: 0; h
 body.look #focus:not([hidden]) { display: flex; }
 #f-name { font-family: var(--display); font-size: 30px; line-height: 1.05; margin: 0; text-shadow: 0 2px 12px rgba(0,0,0,.8); }
 #f-meta { margin: 4px 0 0; color: var(--mist); font-size: 14px; letter-spacing: .04em; text-transform: uppercase; text-shadow: 0 1px 6px #000; }
-@media (max-width: 620px) { #focus { bottom: calc(80px + env(safe-area-inset-bottom, 0px)); } #f-name { font-size: 26px; } }
+@media (max-width: 620px) {
+  #focus { left: 12px; right: 12px; max-width: none; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); padding: 14px 14px 12px; border-radius: 20px; background: rgba(8,17,19,.72); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); border: 1px solid var(--line); }
+  body.look #focus:not([hidden]) { display: grid; grid-template-columns: 1fr auto; align-items: center; column-gap: 12px; }
+  #focus > div { display: contents; }
+  #f-name { font-size: 24px; grid-column: 1; text-shadow: none; }
+  #f-meta { grid-column: 1; font-size: 12px; text-shadow: none; }
+  #f-go { grid-column: 2; grid-row: 1 / span 2; min-height: 48px; }
+  #f-layers { grid-column: 1 / -1; max-width: none; margin: 12px -14px 0; padding: 0 14px 2px; scroll-snap-type: x mandatory; scroll-padding: 0 14px;
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 14px, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, transparent, #000 14px, #000 calc(100% - 28px), transparent); }
+  .layer { scroll-snap-align: start; min-height: 44px; padding: 8px 14px; font-size: 15px; }
+}
 [hidden] { display: none !important; }
 #f-layers { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; max-width: min(560px, calc(100vw - 150px)); }
 @media (max-width: 620px) { #f-layers { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; } .layer { flex: none; } }
@@ -235,10 +245,10 @@ a { color: var(--sea); }
 <div id="edge" hidden aria-hidden="true"><i>→</i><b></b><small></small></div>
 <div id="start" hidden role="dialog" aria-modal="true" aria-labelledby="start-title">
   <div class="start-card">
-    <h2 id="start-title">Look around the world</h2>
-    <p>Hold up your phone and turn. Famous places appear in their real direction, even the ones on the far side of the Earth, below your feet.</p>
-    <button class="btn primary" id="start-motion" type="button">Use my phone to look around</button>
-    <button class="btn" id="start-drag" type="button">Drag with my finger instead</button>
+    <h2 id="start-title">See the world from where you stand</h2>
+    <p>Bisita shows famous places in their real direction from you. It needs your location to know where you are. Your location stays on this device.</p>
+    <button class="btn primary" id="start-motion" type="button">Start from my location</button>
+    <button class="btn" id="start-drag" type="button">Pick a city instead</button>
   </div>
 </div>
 <div id="fade"></div>
@@ -865,7 +875,7 @@ function layoutLook() {
         // behind another place: on the horizon, farther ridges peek out above the
         // nearer one; below the horizon, they sit deeper
         const prev = g[k - 1];
-        el = onH > 0.5 ? prev.dispEl + 0.17 * prev.w : Math.min(el, prev.dispEl - 0.24 * prev.w);
+        el = onH > 0.5 ? prev.dispEl + 0.07 * prev.w : Math.min(el, prev.dispEl - 0.24 * prev.w);
       }
       it.dispEl = Math.max(-88, el);
       const e = it.dispEl * D, b = it.d.brg * D;
@@ -939,7 +949,7 @@ function setHere(c) {
 }
 function aimNearest() {
   const n = lookItems.reduce((a, b) => (b.d.km < a.d.km ? b : a));
-  look.yaw = n.d.brg; look.pitch = Math.max(-80, n.dispEl - 4);
+  look.yaw = n.d.brg; look.pitch = Math.max(-80, n.dispEl > -3 ? 2 : n.dispEl - 4);
 }
 setHere(here); aimNearest();
 function placeLookCamera() {
@@ -1065,15 +1075,8 @@ function renderCities() {
 }
 $("where-btn").addEventListener("click", () => { renderCities(); $("cities").hidden = false; setTimeout(() => $("city-list").querySelector(".res").focus(), 30); });
 $("use-loc").addEventListener("click", () => {
-  if (!navigator.geolocation) { toast("This browser can't share your location. Pick the closest city instead."); return; }
   $("use-loc").textContent = "Finding you…";
-  navigator.geolocation.getCurrentPosition((pos) => {
-    const { latitude: la, longitude: lo } = pos.coords;
-    // the local ground layer borrows the look of the nearest listed city
-    const nearest = CITIES.reduce((a, c) => (dirFor(la, lo, c[1], c[2]).km < dirFor(la, lo, a[1], a[2]).km ? c : a));
-    setHere(["Your location", la, lo, nearest[3]]); aimNearest();
-    $("cities").hidden = true; $("use-loc").textContent = "Use my location"; say("Now standing at your location");
-  }, () => { $("use-loc").textContent = "Use my location"; toast("Location isn't available here. In the preview it's blocked; on the website, allow location when asked. Or pick the closest city."); }, { enableHighAccuracy: false, timeout: 12000, maximumAge: 600000 });
+  locate((ok) => { $("use-loc").textContent = "Use my location"; if (ok) $("cities").hidden = true; });
 });
 $("cities-close").addEventListener("click", () => { $("cities").hidden = true; $("where-btn").focus(); });
 function setBase(m) {
@@ -1342,7 +1345,7 @@ async function startLive() {
   } catch (e) { camOk = false; }
   motion.on = true; $("motion-btn").setAttribute("aria-pressed", "true");
   setTimeout(() => {
-    if (!motion.got && !camOk) { stopLive(); toast("Moving with your phone and seeing through the camera are blocked in this preview. They will work once the app runs as a normal website or phone app. For now, drag to look around."); }
+    if (!motion.got && !camOk) { stopLive(); toast(window.self !== window.top ? "Moving with your phone and the camera are blocked in this preview. Open the Bisita website on your phone to use them. For now, drag to look around." : "This browser didn't allow motion or the camera. Check that you tapped Allow, or drag to look around."); }
     else if (!motion.got) toast("Your camera is on, but this browser isn't sharing the compass. Drag to turn.");
   }, 1500);
 }
@@ -1407,16 +1410,29 @@ $("back").addEventListener("click", backToWorld);
 $("g-3d").addEventListener("click", () => showGallery(!galleryShown));
 new MutationObserver(() => document.body.classList.toggle("panel-tall", $("panel").classList.contains("tall"))).observe($("panel"), { attributes: true, attributeFilter: ["class"] });
 $("motion-btn").addEventListener("click", startLive);
-// Phones start by asking to use motion (browsers only allow that after a tap).
-// Dragging stays available, and the choice to drag is remembered.
-(() => {
+// Bisita starts from where you are: the first screen asks for your location
+// (and, on phones, motion and the camera, which browsers only allow after a tap).
+function locate(done) {
+  if (!navigator.geolocation) { toast("This browser can't share your location. Pick the closest city instead."); return done && done(false); }
+  navigator.geolocation.getCurrentPosition((pos) => {
+    const { latitude: la, longitude: lo } = pos.coords;
+    // the local ground layer borrows the look of the nearest listed city
+    const nearest = CITIES.reduce((a, c) => (dirFor(la, lo, c[1], c[2]).km < dirFor(la, lo, a[1], a[2]).km ? c : a));
+    setHere(["Your location", la, lo, nearest[3]]); aimNearest(); say("Now standing at your location");
+    done && done(true);
+  }, () => { toast("Location isn't available, so you're standing in " + here[0] + ". Tap the place button at the top to change it."); done && done(false); },
+  { enableHighAccuracy: false, timeout: 12000, maximumAge: 600000 });
+}
+(async () => {
   const touch = matchMedia("(pointer: coarse)").matches;
-  let pref = null; try { pref = localStorage.getItem("unknown-look-with"); } catch (e) {}
-  if (!touch || pref === "drag") return;
+  let state = "prompt";
+  try { state = (await navigator.permissions.query({ name: "geolocation" })).state; } catch (e) {}
+  // someone who already allowed location on a computer goes straight in
+  if (state === "granted" && !touch) { locate(); return; }
   $("start").hidden = false; setTimeout(() => $("start-motion").focus(), 50);
   const close = () => { $("start").hidden = true; };
-  $("start-motion").addEventListener("click", () => { close(); try { localStorage.setItem("unknown-look-with", "motion"); } catch (e) {} startLive(); });
-  $("start-drag").addEventListener("click", () => { close(); try { localStorage.setItem("unknown-look-with", "drag"); } catch (e) {} });
+  $("start-motion").addEventListener("click", () => { close(); locate(); if (touch) startLive(); });
+  $("start-drag").addEventListener("click", () => { close(); renderCities(); $("cities").hidden = false; });
 })();
 
 // ---------- panel ----------
