@@ -141,7 +141,8 @@ body.look:not(.in-place) #side { display: flex; }
 .btn.round { width: 52px; height: 52px; min-height: 52px; padding: 0; justify-content: center; flex-direction: column; gap: 0; border-radius: 26px; font-size: 11px; letter-spacing: .06em; }
 .btn.round span { line-height: 1; margin-top: 2px; }
 #ar-btn[aria-pressed="true"] { background: var(--sand); color: #1d1408; border-color: var(--sand); }
-body.ar #theme-btn { display: none; }
+body.ar #theme-btn, body.ar #scene-btn { display: none; }
+#scene-btn span { font-size: 10px; letter-spacing: .02em; }
 /* AR: names sit on solid tags so they read over any camera picture */
 body.ar .olabel b { display: inline-block; background: rgba(8,17,19,.78); padding: 4px 10px; border-radius: 8px; text-shadow: none; }
 body.ar .olabel small { display: inline-block; margin-top: 3px; background: rgba(8,17,19,.6); padding: 1px 8px; border-radius: 6px; color: var(--stone); text-shadow: none; }
@@ -307,6 +308,10 @@ a { color: var(--sea); }
     <span>AR</span>
   </button>
   <button class="btn round" id="theme-btn" type="button" aria-label="Switch to day sky"></button>
+  <button class="btn round" id="scene-btn" type="button" aria-label="Change the scenery">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 19l6.5-9 4 5.5 3-4 6.5 7.5z"/><circle cx="17" cy="6" r="2"/></svg>
+    <span id="scene-txt">Minimal</span>
+  </button>
 </div>
 <p id="hint">Drag to look around. Tap a silhouette to go there.</p>
 <nav class="chips" id="chips" aria-label="Show only"></nav>
@@ -707,6 +712,94 @@ const biomeMesh = (() => {
   return m;
 })();
 lookScene.add(biomeMesh);
+// ---------- scenery styles for Sky view ----------
+// "minimal" is the grass band above. "painted" is a storybook landscape of soft
+// hills and round trees; "panorama" is layered mountains, a forest edge, birds
+// by day and fireflies at night. Each is one 360° picture wrapped around you.
+const SCENE_BAND = { r: 5, lo: -20, hi: 18 };
+function drawScene(style, day) {
+  const W = 4096, H = 900, cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+  const g = cv.getContext("2d"), R = rnd(style.length * 131 + (day ? 7 : 3));
+  const tLo = Math.tan(SCENE_BAND.lo * D), tHi = Math.tan(SCENE_BAND.hi * D);
+  const yOf = (el) => H * (tHi - Math.tan(el * D)) / (tHi - tLo);
+  const hz = yOf(0);
+  // a ridge line that wraps seamlessly all the way round
+  const ridge = (seed, base, amp, sharp) => {
+    const r = rnd(seed), waves = [1, 2, 3, 5, 8, 13, 21].map((k, i) => [k, r() * 6.283, amp / (1 + i * (sharp ? 0.55 : 1.1))]);
+    return (x) => { let v = 0; for (const [k, ph, a] of waves) { const s = Math.sin(k * x / W * 6.283 + ph); v += a * (sharp ? 1 - Math.abs(s) * 1.6 : s); } return yOf(base) - v; };
+  };
+  const layer = (f, fill, soft) => {
+    g.save(); if (soft) g.filter = `blur(${soft}px)`;
+    g.beginPath(); g.moveTo(0, H); for (let x = 0; x <= W; x += 8) g.lineTo(x, f(x)); g.lineTo(W, H); g.closePath();
+    g.fillStyle = fill; g.fill(); g.restore();
+  };
+  const wrap = (x, fn) => { fn(x); if (x < 120) fn(x + W); if (x > W - 120) fn(x - W); };
+  if (style === "painted") {
+    const P = day ? { far: "#a9c9a4", mid: "#82b077", near: "#5f9157", tree: "#4c7c47", trunk: "#6b5440", cloud: "rgba(255,255,255,.75)" }
+                  : { far: "#2d3e48", mid: "#243631", near: "#18241f", tree: "#15211c", trunk: "#141b18", cloud: "rgba(190,200,220,.10)" };
+    // clouds
+    for (let i = 0; i < 14; i++) { const x = R() * W, y = yOf(6 + R() * 10), w = 120 + R() * 220;
+      const hs = [0, 1, 2, 3].map(() => 18 + R() * 10);
+      wrap(x, (xx) => { g.fillStyle = P.cloud; for (let j = 0; j < 4; j++) { g.beginPath(); g.ellipse(xx + (j - 1.5) * w * 0.25, y - (j % 2) * 10, w * 0.28, hs[j], 0, 0, 7); g.fill(); } }); }
+    const f1 = ridge(11, 3.5, 46, false), f2 = ridge(23, 0.8, 34, false), f3 = ridge(37, -3.5, 26, false);
+    // watercolor: a soft wash, then the same shape again, slightly smaller, more solid
+    layer(f1, P.far, 5); layer((x) => f1(x) + 6, P.far, 0);
+    layer(f2, P.mid, 5); layer((x) => f2(x) + 5, P.mid, 0);
+    const tree = (x, y, s, col) => wrap(x, (xx) => {
+      g.fillStyle = P.trunk; g.fillRect(xx - s * 0.08, y - s * 0.5, s * 0.16, s * 0.5);
+      g.fillStyle = col; for (const [dx, dy, r] of [[0, -1.05, .48], [-.3, -.75, .38], [.32, -.78, .4], [0, -.62, .42]]) { g.beginPath(); g.arc(xx + dx * s, y + dy * s, r * s, 0, 7); g.fill(); }
+    });
+    for (let i = 0; i < 70; i++) { const x = R() * W; tree(x, f2(x) + 8, 16 + R() * 14, P.tree); }
+    layer(f3, P.near, 4); layer((x) => f3(x) + 4, P.near, 0);
+    for (let i = 0; i < 40; i++) { const x = R() * W; tree(x, f3(x) + 10 + R() * 30, 30 + R() * 30, P.tree); }
+    // flowers or dew in the near grass
+    for (let i = 0; i < 400; i++) { const x = R() * W, y = f3(x) + 20 + R() * (H - f3(x)); g.fillStyle = day ? ["#f3e3a1", "#f1b8a8", "#ffffff"][i % 3] : "rgba(230,240,255,.25)"; g.globalAlpha = 0.5; g.beginPath(); g.arc(x, y, 1.5 + R() * 1.5, 0, 7); g.fill(); g.globalAlpha = 1; }
+  } else {
+    const P = day ? { haze: "#cfe3ec", far: "#9fb4c4", mid: "#71907f", snow: "#ffffff", forest: "#2f5a3a", ground: "#3d6b45" }
+                  : { haze: "#1b2a3c", far: "#283750", mid: "#1d2a37", snow: "#9aa9c2", forest: "#0e1916", ground: "#101b17" };
+    if (day) for (let i = 0; i < 10; i++) { const x = R() * W, y = yOf(9 + R() * 8), w = 260 + R() * 300;
+      wrap(x, (xx) => { g.fillStyle = "rgba(255,255,255,.3)"; for (const k of [1, .75, .5]) { g.beginPath(); g.ellipse(xx, y, w / 2 * k, 14 * k + 4, 0, 0, 7); g.fill(); } }); }
+    const f1 = ridge(5, 6, 70, true), f2 = ridge(17, 2.5, 46, true), f3 = ridge(29, -1, 14, false);
+    layer(f1, P.far, 0);
+    // snow on the highest far peaks
+    g.save(); g.beginPath(); g.moveTo(0, H); for (let x = 0; x <= W; x += 8) g.lineTo(x, f1(x)); g.lineTo(W, H); g.closePath(); g.clip();
+    g.fillStyle = P.snow; g.globalAlpha = day ? 0.9 : 0.5; g.fillRect(0, 0, W, yOf(10.5)); g.restore();
+    // distance haze
+    const hzG = g.createLinearGradient(0, yOf(14), 0, hz); hzG.addColorStop(0, "rgba(0,0,0,0)"); hzG.addColorStop(1, P.haze);
+    g.globalAlpha = 0.45; g.fillStyle = hzG; g.fillRect(0, yOf(14), W, hz - yOf(14)); g.globalAlpha = 1;
+    layer(f2, P.mid, 0);
+    g.globalAlpha = 0.25; g.fillStyle = P.haze; g.fillRect(0, hz - 30, W, 30); g.globalAlpha = 1;
+    // forest edge: a wall of firs on the near ground
+    layer(f3, P.ground, 0);
+    g.fillStyle = P.forest;
+    for (let x = 0; x < W; x += 5 + R() * 9) { const base = f3(x) + 4, h = 18 + R() * 42, w = h * (0.32 + R() * 0.1);
+      if (R() < 0.18) continue;
+      wrap(x, (xx) => { g.beginPath(); g.moveTo(xx - w / 2, base); g.lineTo(xx, base - h); g.lineTo(xx + w / 2, base); g.closePath(); g.fill(); }); }
+        if (day) { g.strokeStyle = "rgba(40,55,65,.7)"; g.lineWidth = 2; g.lineCap = "round";
+      for (let i = 0; i < 9; i++) { const x = R() * W, y = yOf(8 + R() * 7), s = 6 + R() * 5; g.beginPath(); g.moveTo(x - s, y); g.quadraticCurveTo(x - s / 2, y - s * 0.6, x, y); g.quadraticCurveTo(x + s / 2, y - s * 0.6, x + s, y); g.stroke(); } }
+    else { g.save(); g.shadowColor = "rgba(247,226,122,.9)"; g.shadowBlur = 10; g.fillStyle = "#f7e27a";
+      for (let i = 0; i < 90; i++) { const x = R() * W, y = f3(x) + 12 + R() * 120; g.globalAlpha = 0.4 + R() * 0.5; g.beginPath(); g.arc(x, y, 1.6 + R() * 1.4, 0, 7); g.fill(); } g.restore(); g.globalAlpha = 1; }
+  }
+  // melt the bottom into the ground below
+  g.globalCompositeOperation = "destination-in";
+  const m = g.createLinearGradient(0, 0, 0, H); m.addColorStop(0, "#000"); m.addColorStop(0.8, "#000"); m.addColorStop(1, "rgba(0,0,0,0)");
+  g.fillStyle = m; g.fillRect(0, 0, W, H); g.globalCompositeOperation = "source-over";
+  return cv;
+}
+const sceneMat = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, side: THREE.BackSide });
+const sceneMesh = (() => {
+  const { r, lo, hi } = SCENE_BAND, y0 = r * Math.tan(lo * D), y1 = r * Math.tan(hi * D);
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, y1 - y0, 200, 1, true), sceneMat);
+  m.position.y = (y0 + y1) / 2; m.renderOrder = -1; m.visible = false; return m;
+})();
+lookScene.add(sceneMesh);
+const sceneCache = {};
+function applyScene() {
+  if (scenery === "minimal") { sceneMesh.visible = false; return; }
+  const key = scenery + (theme === "day" ? "-day" : "-night");
+  if (!sceneCache[key]) { const t = new THREE.CanvasTexture(drawScene(scenery, theme === "day")); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4; sceneCache[key] = t; }
+  sceneMat.map = sceneCache[key]; sceneMat.needsUpdate = true; sceneMesh.visible = true;
+}
 const BIOME_WORDS = { prairie: "prairie grass", savanna: "savanna", desert: "desert", forest: "forest", tropical: "palms", coast: "coast", city: "city" };
 function setBiome(kind) {
   const tex = new THREE.CanvasTexture(drawBiome(kind)); tex.encoding = THREE.sRGBEncoding; tex.wrapS = THREE.RepeatWrapping;
@@ -715,7 +808,8 @@ function setBiome(kind) {
 }
 
 const look = { yaw: 0, pitch: -8, fov: 70 };
-let ar = false, theme = "night";
+let ar = false, theme = "night", scenery = "minimal";
+try { const v = localStorage.getItem("bisita-scenery"); if (v === "painted" || v === "panorama") scenery = v; } catch (e) {}
 try { if (localStorage.getItem("bisita-theme") === "day") theme = "day"; } catch (e) {}
 const lookWrap = $("look");
 function dirFor(lat1, lon1, lat2, lon2) {
@@ -1431,8 +1525,14 @@ async function setAR(on) {
 // Day or night sky in Sky view
 const SUN_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>';
 const MOON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>';
+const SCENE_NAMES = { minimal: "Minimal", painted: "Painted", panorama: "Panorama" };
+function setScenery(v) {
+  scenery = v; applyScene();
+  $("scene-txt").textContent = SCENE_NAMES[v];
+  try { localStorage.setItem("bisita-scenery", v); } catch (e) {}
+}
 function setTheme(t) {
-  theme = t; document.body.classList.toggle("day", t === "day");
+  theme = t; applyScene(); document.body.classList.toggle("day", t === "day");
   $("theme-btn").setAttribute("aria-label", t === "day" ? "Switch to night sky" : "Switch to day sky");
   $("theme-btn").innerHTML = t === "day" ? MOON_SVG : SUN_SVG;
   try { localStorage.setItem("bisita-theme", t); } catch (e) {}
@@ -1495,6 +1595,7 @@ new MutationObserver(() => document.body.classList.toggle("panel-tall", $("panel
 $("motion-btn").addEventListener("click", toggleMotion);
 $("ar-btn").addEventListener("click", () => setAR(!ar));
 $("theme-btn").addEventListener("click", () => setTheme(theme === "day" ? "night" : "day"));
+$("scene-btn").addEventListener("click", () => { const order = ["minimal", "painted", "panorama"]; const v = order[(order.indexOf(scenery) + 1) % 3]; setScenery(v); say(SCENE_NAMES[v] + " scenery"); });
 $("toast").addEventListener("click", () => ($("toast").hidden = true));
 // Bisita starts from where you are: the first screen asks for your location
 // (and, on phones, motion and the camera, which browsers only allow after a tap).
@@ -1523,7 +1624,7 @@ function locate(done, tries = 0) {
 }
 (async () => {
   const touch = matchMedia("(pointer: coarse)").matches;
-  setTheme(theme);
+  setTheme(theme); setScenery(scenery);
   let state = "prompt";
   try { state = (await navigator.permissions.query({ name: "geolocation" })).state; } catch (e) {}
   // someone who already allowed location on a computer goes straight in
@@ -1637,7 +1738,9 @@ function frame(now) {
     camera.clearViewOffset();
     placeLookCamera();
     if (camera.fov !== look.fov) { camera.fov = look.fov; camera.updateProjectionMatrix(); }
-    dome.visible = biomeMesh.visible = !document.body.classList.contains("camera");
+    dome.visible = !document.body.classList.contains("camera");
+    biomeMesh.visible = dome.visible && scenery === "minimal";
+    if (scenery !== "minimal") sceneMesh.visible = dome.visible;
     { const u = dome.material.uniforms.uDay, t = theme === "day" ? 1 : 0; u.value += (t - u.value) * 0.08; biomeMat.color.setRGB(1 - 0.55 * u.value, 1 - 0.35 * u.value, 1 - 0.6 * u.value); }
     renderer.setClearColor(0x081113, dome.visible ? 1 : 0);
     renderer.render(lookScene, camera);
