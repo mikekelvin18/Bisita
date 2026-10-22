@@ -2,7 +2,7 @@
 
 Hold up your phone and see the world's famous places in their real direction, even the ones on the far side of the Earth, below your feet. Tap one for photos, a 3D flyover and the story of the place.
 
-Live site: https://mikekelvin18.github.io/bisita/
+Live site: https://mikekelvin18.github.io/Bisita/
 
 ## How it's built
 
