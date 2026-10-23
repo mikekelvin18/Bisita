@@ -1,77 +1,28 @@
-== christ-the-redeemer exit 1
+== christ-the-redeemer exit 0
+{"id": "christ-the-redeemer", "bbox": [-43.239766271348486, -22.97884933524973, -43.18123372865152, -22.924950664750266], "km": 6.0, "elevMin": 0, "elevMax": 779, "scene": "S2C_23KPQ_20250616_0_L2A", "date": "2025-06-16", "cloud": 0.024947, "blank": 0.0, "demZoom": 13}
 
-Traceback (most recent call last):
-  File "/home/runner/work/Bisita/Bisita/fetch_place.py", line 2, in <module>
-    import numpy as np, mgrs, rasterio
-  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/mgrs/__init__.py", line 3, in <module>
-    from . import core
-  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/mgrs/core.py", line 8, in <module>
-    import packaging.tags
-ModuleNotFoundError: No module named 'packaging'
 
-== chichen-itza exit 1
+== chichen-itza exit 0
+{"id": "chichen-itza", "bbox": [-88.58220307771845, 20.670825332375134, -88.55339692228156, 20.697774667624866], "km": 3.0, "elevMin": 16, "elevMax": 48, "scene": "S2A_16QCH_20240329_0_L2A", "date": "2024-03-29", "cloud": 0.0, "blank": 0.0, "demZoom": 14}
 
-Traceback (most recent call last):
-  File "/home/runner/work/Bisita/Bisita/fetch_place.py", line 2, in <module>
-    import numpy as np, mgrs, rasterio
-  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/mgrs/__init__.py", line 3, in <module>
-    from . import core
-  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/mgrs/core.py", line 8, in <module>
-    import packaging.tags
-ModuleNotFoundError: No module named 'packaging'
 
-== colosseum exit 1
+== colosseum exit 0
+{"id": "colosseum", "bbox": [12.474099245974909, 41.87672533237514, 12.510300754025092, 41.90367466762486], "km": 3.0, "elevMin": 7, "elevMax": 79, "scene": "S2C_33TTG_20250807_0_L2A", "date": "2025-08-07", "cloud": 0.001204, "blank": 0.0, "demZoom": 14}
 
-Traceback (most recent call last):
-  File "/home/runner/work/Bisita/Bisita/fetch_place.py", line 2, in <module>
-    import numpy as np, mgrs, rasterio
-  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/mgrs/__init__.py", line 3, in <module>
-    from . import core
-  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/mgrs/core.py", line 8, in <module>
-    import packaging.tags
-ModuleNotFoundError: No module named 'packaging'
 
-== amazon exit 1
+== amazon exit 0
+{"id": "amazon", "bbox": [-60.887918925606, -2.8277973409989223, -60.672081074394, -2.612202659001078], "km": 24.0, "elevMin": 0, "elevMax": 672, "scene": "S2A_20MQC_20250804_0_L2A", "date": "2025-08-04", "cloud": 0.057979, "blank": 0.1264, "demZoom": 11}
 
-Traceback (most recent call last):
-  File "/home/runner/work/Bisita/Bisita/fetch_place.py", line 2, in <module>
-    import numpy as np, mgrs, rasterio
-  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/mgrs/__init__.py", line 3, in <module>
-    from . import core
-  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/mgrs/core.py", line 8, in <module>
-    import packaging.tags
-ModuleNotFoundError: No module named 'packaging'
 
-== jeju exit 1
+== jeju exit 0
+{"id": "jeju", "bbox": [126.38937928122596, 33.244919547251165, 126.66902071877405, 33.47848045274883], "km": 26.0, "elevMin": 0, "elevMax": 1917, "scene": "S2A_52SBB_20241202_0_L2A", "date": "2024-12-02", "cloud": 0.298234, "blank": 0.0, "demZoom": 11}
 
-Traceback (most recent call last):
-  File "/home/runner/work/Bisita/Bisita/fetch_place.py", line 2, in <module>
-    import numpy as np, mgrs, rasterio
-  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/mgrs/__init__.py", line 3, in <module>
-    from . import core
-  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/mgrs/core.py", line 8, in <module>
-    import packaging.tags
-ModuleNotFoundError: No module named 'packaging'
 
-== puerto-princesa exit 1
+== puerto-princesa exit 0
+{"id": "puerto-princesa", "bbox": [118.87349168916289, 10.15406755300036, 118.9465083108371, 10.22593244699964], "km": 8.0, "elevMin": 0, "elevMax": 1015, "scene": "S2B_50PQS_20240305_0_L2A", "date": "2024-03-05", "cloud": 5.983359, "blank": 0.0, "demZoom": 13}
 
-Traceback (most recent call last):
-  File "/home/runner/work/Bisita/Bisita/fetch_place.py", line 2, in <module>
-    import numpy as np, mgrs, rasterio
-  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/mgrs/__init__.py", line 3, in <module>
-    from . import core
-  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/mgrs/core.py", line 8, in <module>
-    import packaging.tags
-ModuleNotFoundError: No module named 'packaging'
 
-== table-mountain exit 1
+== table-mountain exit 0
+{"id": "table-mountain", "bbox": [18.36647660111196, -33.99873244699964, 18.453123398888042, -33.92686755300036], "km": 8.0, "elevMin": 0, "elevMax": 1082, "scene": "S2B_34HBH_20250203_0_L2A", "date": "2025-02-03", "cloud": 0.078561, "blank": 0.0, "demZoom": 13}
 
-Traceback (most recent call last):
-  File "/home/runner/work/Bisita/Bisita/fetch_place.py", line 2, in <module>
-    import numpy as np, mgrs, rasterio
-  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/mgrs/__init__.py", line 3, in <module>
-    from . import core
-  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/mgrs/core.py", line 8, in <module>
-    import packaging.tags
-ModuleNotFoundError: No module named 'packaging'
 
