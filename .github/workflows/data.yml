@@ -20,7 +20,7 @@ jobs:
         run: python3 tools/fetch_unesco.py
       - name: New places (satellite, elevation, photos)
         run: |
-          pip install numpy mgrs rasterio pillow
+          pip install numpy mgrs rasterio pillow packaging
           python3 tools/fetch_new_places.py
       - name: Commit results
         run: |

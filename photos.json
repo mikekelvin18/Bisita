@@ -1667,17 +1667,6 @@
  ],
  "amazon": [
   {
-   "title": "File:Araracanga - Ara macao macao 03.jpg",
-   "page": "https://commons.wikimedia.org/wiki/File:Araracanga_-_Ara_macao_macao_03.jpg",
-   "author": "Germano Roberto Sch\u00fc\u00fcr",
-   "license": "CC BY-SA 3.0",
-   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
-   "w": 1800,
-   "h": 1301,
-   "src": "places/amazon-p0.jpg",
-   "small": "places/amazon-p0-s.jpg"
-  },
-  {
    "title": "File:Anavilhanas2.jpg",
    "page": "https://commons.wikimedia.org/wiki/File:Anavilhanas2.jpg",
    "author": "Jason Auch from Calgary, Canada",
@@ -1687,6 +1676,17 @@
    "h": 2467,
    "src": "places/amazon-p1.jpg",
    "small": "places/amazon-p1-s.jpg"
+  },
+  {
+   "title": "File:Araracanga - Ara macao macao 03.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Araracanga_-_Ara_macao_macao_03.jpg",
+   "author": "Germano Roberto Sch\u00fc\u00fcr",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "w": 1800,
+   "h": 1301,
+   "src": "places/amazon-p0.jpg",
+   "small": "places/amazon-p0-s.jpg"
   },
   {
    "title": "File:Parque Nacional de Anavilhanas GuilhonAmaz\u00f4nia (31).jpg",
@@ -1781,17 +1781,6 @@
  ],
  "christ-the-redeemer": [
   {
-   "title": "File:Rio skyline and Cristo Redentor from Sugarloaf Mountain, Brazil.jpg",
-   "page": "https://commons.wikimedia.org/wiki/File:Rio_skyline_and_Cristo_Redentor_from_Sugarloaf_Mountain,_Brazil.jpg",
-   "author": "Wilfredor",
-   "license": "CC0",
-   "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
-   "w": 8025,
-   "h": 4834,
-   "src": "places/christ-the-redeemer-p0.jpg",
-   "small": "places/christ-the-redeemer-p0-s.jpg"
-  },
-  {
    "title": "File:Redentor Over Clouds 1.jpg",
    "page": "https://commons.wikimedia.org/wiki/File:Redentor_Over_Clouds_1.jpg",
    "author": "Donatas Dabravolskas",
@@ -1801,6 +1790,17 @@
    "h": 2688,
    "src": "places/christ-the-redeemer-p1.jpg",
    "small": "places/christ-the-redeemer-p1-s.jpg"
+  },
+  {
+   "title": "File:Rio skyline and Cristo Redentor from Sugarloaf Mountain, Brazil.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Rio_skyline_and_Cristo_Redentor_from_Sugarloaf_Mountain,_Brazil.jpg",
+   "author": "Wilfredor",
+   "license": "CC0",
+   "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "w": 8025,
+   "h": 4834,
+   "src": "places/christ-the-redeemer-p0.jpg",
+   "small": "places/christ-the-redeemer-p0-s.jpg"
   },
   {
    "title": "File:Unique Moment with the Moon and Christ the Redeemer 3.jpg",
@@ -1952,17 +1952,6 @@
  ],
  "puerto-princesa": [
   {
-   "title": "File:Puerto Princesa Subterranean Park, limestone formations, Palawan, Philippines.jpg",
-   "page": "https://commons.wikimedia.org/wiki/File:Puerto_Princesa_Subterranean_Park,_limestone_formations,_Palawan,_Philippines.jpg",
-   "author": "Vyacheslav Argenberg",
-   "license": "CC BY 4.0",
-   "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
-   "w": 4000,
-   "h": 2667,
-   "src": "places/puerto-princesa-p0.jpg",
-   "small": "places/puerto-princesa-p0-s.jpg"
-  },
-  {
    "title": "File:Puerto Princesa Underground River.jpg",
    "page": "https://commons.wikimedia.org/wiki/File:Puerto_Princesa_Underground_River.jpg",
    "author": "Mike Gonzalez",
@@ -1972,6 +1961,17 @@
    "h": 1880,
    "src": "places/puerto-princesa-p1.jpg",
    "small": "places/puerto-princesa-p1-s.jpg"
+  },
+  {
+   "title": "File:Puerto Princesa Subterranean Park, limestone formations, Palawan, Philippines.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Puerto_Princesa_Subterranean_Park,_limestone_formations,_Palawan,_Philippines.jpg",
+   "author": "Vyacheslav Argenberg",
+   "license": "CC BY 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+   "w": 4000,
+   "h": 2667,
+   "src": "places/puerto-princesa-p0.jpg",
+   "small": "places/puerto-princesa-p0-s.jpg"
   },
   {
    "title": "File:Palawan Underground.JPG",
@@ -2005,63 +2005,6 @@
    "h": 2667,
    "src": "places/puerto-princesa-p4.jpg",
    "small": "places/puerto-princesa-p4-s.jpg"
-  }
- ],
- "table-mountain": [
-  {
-   "title": "File:\u041a\u044b\u0437\u044b\u043b\u043a\u0443\u043f \u043d\u0430 \u0440\u0430\u0441\u0441\u0432\u0435\u0442\u0435.jpg",
-   "page": "https://commons.wikimedia.org/wiki/File:%D0%9A%D1%8B%D0%B7%D1%8B%D0%BB%D0%BA%D1%83%D0%BF_%D0%BD%D0%B0_%D1%80%D0%B0%D1%81%D1%81%D0%B2%D0%B5%D1%82%D0%B5.jpg",
-   "author": "\u041c\u0430\u043a\u0441\u0430\u044279",
-   "license": "CC BY-SA 4.0",
-   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
-   "w": 3926,
-   "h": 2859,
-   "src": "places/table-mountain-p0.jpg",
-   "small": "places/table-mountain-p0-s.jpg"
-  },
-  {
-   "title": "File:Sunset in Saxon Switzerland.jpg",
-   "page": "https://commons.wikimedia.org/wiki/File:Sunset_in_Saxon_Switzerland.jpg",
-   "author": "Michael G\u00e4bler",
-   "license": "CC BY 3.0",
-   "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
-   "w": 2780,
-   "h": 1831,
-   "src": "places/table-mountain-p1.jpg",
-   "small": "places/table-mountain-p1-s.jpg"
-  },
-  {
-   "title": "File:Cape Town (ZA), Table Mountain -- 2024 -- 2825.jpg",
-   "page": "https://commons.wikimedia.org/wiki/File:Cape_Town_(ZA),_Table_Mountain_--_2024_--_2825.jpg",
-   "author": "Dietmar Rabich",
-   "license": "CC BY-SA 4.0",
-   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
-   "w": 6720,
-   "h": 4200,
-   "src": "places/table-mountain-p2.jpg",
-   "small": "places/table-mountain-p2-s.jpg"
-  },
-  {
-   "title": "File:Cape Town (ZA), Table Mountain -- 2024 -- 2821.jpg",
-   "page": "https://commons.wikimedia.org/wiki/File:Cape_Town_(ZA),_Table_Mountain_--_2024_--_2821.jpg",
-   "author": "Dietmar Rabich",
-   "license": "CC BY-SA 4.0",
-   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
-   "w": 6720,
-   "h": 4480,
-   "src": "places/table-mountain-p3.jpg",
-   "small": "places/table-mountain-p3-s.jpg"
-  },
-  {
-   "title": "File:Cape Town (ZA), Table Mountain -- 2024 -- 3437.jpg",
-   "page": "https://commons.wikimedia.org/wiki/File:Cape_Town_(ZA),_Table_Mountain_--_2024_--_3437.jpg",
-   "author": "Dietmar Rabich",
-   "license": "CC BY-SA 4.0",
-   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
-   "w": 6559,
-   "h": 3689,
-   "src": "places/table-mountain-p4.jpg",
-   "small": "places/table-mountain-p4-s.jpg"
   }
  ]
 }

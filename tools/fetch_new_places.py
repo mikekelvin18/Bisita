@@ -4,6 +4,8 @@ import json, os, subprocess, sys
 from PIL import Image, ImageOps
 B = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 req = json.load(open(os.path.join(B, "tools", "requests", "places.json")))
+LOG = os.path.join(B, "data", "fetch-log.txt")
+if os.path.exists(LOG): os.remove(LOG)
 for r in req:
     if os.path.exists(os.path.join(B, "places", r["id"] + ".json")): continue
     print("satellite and elevation:", r["id"], flush=True)
