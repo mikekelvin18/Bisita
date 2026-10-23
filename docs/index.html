@@ -104,11 +104,17 @@ body.look #look { display: block; }
 body.look #reticle { display: block; }
 body.look #hint { top: calc(84px + env(safe-area-inset-top, 0px)); bottom: auto; }
 body.look::after { content: ""; position: fixed; left: 0; right: 0; bottom: 0; height: 220px; z-index: 3; pointer-events: none; background: linear-gradient(to top, rgba(8,17,19,.82), rgba(8,17,19,0)); }
-#pop { position: fixed; inset: 0; z-index: 9; display: grid; place-items: center; padding: 16px; background: rgba(8,17,19,.35); }
+#pop { position: fixed; inset: 0; z-index: 9; display: grid; place-items: center; padding: 16px; overflow-y: auto; background: rgba(8,17,19,.35); }
 .pop-card { position: relative; width: min(380px, 100%); background: var(--deep); border: 1px solid var(--line); border-radius: 22px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.55); animation: popin .35s cubic-bezier(.2,.9,.3,1.2); }
 @keyframes popin { from { transform: translateY(24px) scale(.92); opacity: 0; } to { transform: none; opacity: 1; } }
-#pop-img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: var(--raise); }
+#pop-img { display: block; width: 100%; height: min(42vh, 72vw); object-fit: cover; background: var(--raise); }
 .pop-body { padding: 14px 18px 18px; }
+#pop-credit { margin: 0; padding: 4px 18px 0; font-size: 11px; color: var(--mist); }
+#pop-credit a { color: var(--mist); }
+.whs-label { position: absolute; left: 0; top: 0; pointer-events: none; transform: translate(-50%, 10px); font-size: 12px; font-weight: 600; white-space: nowrap; color: var(--stone); text-shadow: 0 1px 2px rgba(0,0,0,.9), 0 0 8px rgba(0,0,0,.6); }
+.whs-label small { display: block; font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--sand); text-align: center; }
+#whs-btn[aria-pressed="true"] { background: var(--stone); color: var(--night); border-color: var(--stone); }
+body:not(.look) #side > #whs-btn { display: inline-flex; }
 .pop-body h2 { font-family: var(--display); font-weight: 400; font-size: 28px; line-height: 1.1; margin: 4px 0 4px; }
 .pop-body p { margin: 0; } #pop-meta { color: var(--mist); font-size: 15px; margin-bottom: 14px; }
 .pop-body .btn { width: 100%; justify-content: center; }
@@ -283,6 +289,7 @@ a { color: var(--sea); }
   <div class="pop-card">
     <button class="pop-x" id="pop-x" type="button" aria-label="Close">&times;</button>
     <img id="pop-img" alt="">
+    <p id="pop-credit" hidden></p>
     <div class="pop-body">
       <p class="eyebrow" id="pop-cat"></p>
       <h2 id="pop-name"></h2>
@@ -341,6 +348,10 @@ a { color: var(--sea); }
   <button class="btn round" id="ar-btn" type="button" aria-pressed="false" aria-label="AR: show places over your camera">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8V6a2 2 0 0 1 2-2h2M17 4h2a2 2 0 0 1 2 2v2M21 16v2a2 2 0 0 1-2 2h-2M7 20H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3.2"/></svg>
     <span>AR</span>
+  </button>
+  <button class="btn round" id="whs-btn" type="button" aria-pressed="true" aria-label="Show UNESCO World Heritage Sites">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l9 5H3z"/><path d="M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/></svg>
+    <span>UNESCO</span>
   </button>
   <button class="btn round" id="theme-btn" type="button" aria-label="Switch to day sky"></button>
   <button class="btn round" id="scene-btn" type="button" aria-label="Change the scenery">
@@ -559,7 +570,7 @@ stage.addEventListener("pointermove", (e) => {
     orbit.angle -= dx * 0.006; orbit.pitch = Math.max(0.12, Math.min(1.25, orbit.pitch + dy * 0.004));
   }
 });
-const endPtr = (e) => { const was = ptrs.size; ptrs.delete(e.pointerId); if (ptrs.size < 2) lastPinch = 0; if (e.type === "pointerup" && was === 1 && !dragMoved && mode === "look") tapLook(e.clientX, e.clientY); };
+const endPtr = (e) => { const was = ptrs.size; ptrs.delete(e.pointerId); if (ptrs.size < 2) lastPinch = 0; if (e.type === "pointerup" && was === 1 && !dragMoved) { if (mode === "look") tapLook(e.clientX, e.clientY); else if (mode === "globe") tapGlobe(e.clientX, e.clientY); } };
 stage.addEventListener("pointerup", endPtr); stage.addEventListener("pointercancel", endPtr);
 stage.addEventListener("wheel", (e) => { e.preventDefault(); bump(); if (mode === "place") placeUser(); zoomBy(Math.exp(e.deltaY * 0.0012)); }, { passive: false });
 function zoomBy(f) {
@@ -1144,6 +1155,7 @@ const nadir = document.createElement("div"); nadir.className = "nadir"; nadir.se
 nadir.textContent = "Straight down: the opposite side of the Earth"; lookWrap.appendChild(nadir);
 function fmtDist(km) { return useMiles ? `${Math.round(km * 0.621371).toLocaleString()} mi` : `${Math.round(km).toLocaleString()} km`; }
 function compassWord(b) { return ["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"][Math.round(b / 45) % 8]; }
+var whsHere = null;
 function setHere(c) {
   here = c; $("where-txt").textContent = c[0];
   try { localStorage.setItem("skyview-here", JSON.stringify(c[0] === "Your location" ? c : c[0])); } catch (e) {}
@@ -1159,6 +1171,7 @@ function setHere(c) {
   dome.material.uniforms.uN.value.set(-Math.sin(la) * Math.cos(lo), -Math.sin(la) * Math.sin(lo), Math.cos(la));
   dome.material.uniforms.uU.value.set(Math.cos(la) * Math.cos(lo), Math.cos(la) * Math.sin(lo), Math.sin(la));
   setBiome(c[3] || "prairie"); applyScene();
+  if (whsHere) whsHere();
 }
 function aimNearest() {
   const n = lookItems.reduce((a, b) => (b.d.km < a.d.km ? b : a));
@@ -1284,7 +1297,10 @@ function tapLook(x, y) {
   ndc.set((x / innerWidth) * 2 - 1, -(y / innerHeight) * 2 + 1);
   ray.setFromCamera(ndc, camera);
   const hits = ray.intersectObjects(lookItems.map((it) => it.hit), false);
-  if (!hits.length) return;
+  if (!hits.length) {
+    if (WHS.on && WHS.sites.length) { const st = whsNearest(ray.ray.direction, Math.max(2, look.fov / 18)); if (st) showSitePop(st); }
+    return;
+  }
   const items = hits.map((h) => h.object.userData.item);
   approach(items.includes(focused) ? focused : items.sort((a, b) => a.d.km - b.d.km)[0]);
 }
@@ -1333,18 +1349,111 @@ function stepZoom(now) {
 }
 $("f-go").addEventListener("click", () => { if (focused) approach(focused); });
 let popItem = null;
+let popSite = null;
 function showPop(it) {
-  popItem = it;
+  dispatchEvent(new CustomEvent("bisita:pop", { detail: it.p }));
+  popItem = it; popSite = null; $("pop-credit").hidden = true; $("pop-img").hidden = false;
+  $("pop-go").textContent = "See photos and 3D";
   $("pop-img").src = `places/${it.p.id}-card.jpg`; $("pop-img").alt = `${it.p.name}`;
   $("pop-cat").textContent = CATS[it.p.cat];
   $("pop-name").textContent = it.p.name;
   $("pop-meta").textContent = `${it.p.country} · ${fmtDist(it.d.km)} ${compassWord(it.d.brg)}`;
   $("pop").hidden = false; setTimeout(() => $("pop-go").focus(), 30);
 }
-function hidePop() { $("pop").hidden = true; popItem = null; }
+function hidePop() { $("pop").hidden = true; popItem = null; popSite = null; }
+const CAT_WORD = { cultural: "Cultural", natural: "Natural", mixed: "Cultural and natural" };
+function showSitePop(st) {
+  popItem = null; popSite = st;
+  const d = dirFor(here[1], here[2], st.lat, st.lon);
+  dispatchEvent(new CustomEvent("bisita:pop", { detail: { id: "whs-" + st.id, name: st.name, country: (st.countries || []).join(" and "), lat: st.lat, lon: st.lon, whs: true } }));
+  const ph = st.photo;
+  $("pop-img").hidden = !ph; if (ph) { $("pop-img").src = ph.thumb; $("pop-img").alt = st.name; }
+  const cr = $("pop-credit"); cr.hidden = !ph; cr.innerHTML = "";
+  if (ph) cr.append("Photo: ", Object.assign(document.createElement("a"), { href: ph.page, target: "_blank", rel: "noopener", textContent: `${ph.author || "Wikimedia Commons"}, ${ph.license}` }));
+  $("pop-cat").textContent = "UNESCO World Heritage" + (CAT_WORD[st.cat] ? " · " + CAT_WORD[st.cat] : "");
+  $("pop-name").textContent = st.name;
+  $("pop-meta").textContent = [(st.countries || []).join(", "), `${fmtDist(d.km)} ${compassWord(d.brg)}`, st.year ? `Listed ${st.year}` : ""].filter(Boolean).join(" · ");
+  $("pop-go").textContent = "Open the UNESCO page";
+  $("pop").hidden = false; setTimeout(() => $("pop-go").focus(), 30);
+}
 $("pop-x").addEventListener("click", hidePop);
+$("pop-img").addEventListener("error", () => { $("pop-img").hidden = true; $("pop-credit").hidden = true; });
 $("pop").addEventListener("click", (e) => { if (e.target === $("pop")) hidePop(); });
-$("pop-go").addEventListener("click", () => { const it = popItem; hidePop(); if (it) visit(it.p); });
+$("pop-go").addEventListener("click", () => {
+  if (popSite) { open(`https://whc.unesco.org/en/list/${popSite.id}/`, "_blank", "noopener"); return; }
+  const it = popItem; hidePop(); if (it) visit(it.p);
+});
+
+// ---------- UNESCO World Heritage layer ----------
+// Every World Heritage Site (from Wikidata) as a small glowing dot in its real
+// direction: gold for cultural, green for natural, blue for both. The full
+// Bisita places keep their 3D landforms; the rest are a tap away from a photo card.
+const WHS = { sites: [], on: true, look: null, globe: null, label: null, near: null };
+try { WHS.on = localStorage.getItem("bisita-whs") !== "off"; } catch (e) {}
+$("whs-btn").setAttribute("aria-pressed", WHS.on ? "true" : "false");
+const WHS_COL = { cultural: [0.89, 0.68, 0.42], natural: [0.50, 0.80, 0.58], mixed: [0.62, 0.77, 0.92], "": [0.89, 0.68, 0.42] };
+const DOT = (() => { const c = document.createElement("canvas"); c.width = c.height = 64; const g = c.getContext("2d");
+  const r = g.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, "rgba(255,255,255,1)"); r.addColorStop(0.35, "rgba(255,255,255,.95)"); r.addColorStop(0.5, "rgba(255,255,255,.35)"); r.addColorStop(1, "rgba(255,255,255,0)");
+  g.fillStyle = r; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
+function whsMat(size) { return new THREE.PointsMaterial({ size, sizeAttenuation: false, map: DOT, vertexColors: true, transparent: true, depthWrite: false }); }
+function whsDir(st) {
+  const d = dirFor(here[1], here[2], st.lat, st.lon), arc = d.km / 6371 / D;
+  // same rule as the places: beyond ~4,500 km they sink below the horizon
+  const el = Math.max(-88, -Math.max(0, arc - 40) / 140 * 90 + (arc < 40 ? 0.4 : 0)), e = el * D, b = d.brg * D;
+  return new THREE.Vector3(Math.sin(b) * Math.cos(e), Math.sin(e), -Math.cos(b) * Math.cos(e));
+}
+whsHere = () => {
+  if (!WHS.sites.length) return;
+  const pos = new Float32Array(WHS.sites.length * 3), col = new Float32Array(WHS.sites.length * 3);
+  WHS.sites.forEach((st, i) => { st.dv = whsDir(st); pos.set([st.dv.x * 45, st.dv.y * 45, st.dv.z * 45], i * 3); col.set(WHS_COL[st.cat] || WHS_COL[""], i * 3); });
+  if (!WHS.look) { WHS.look = new THREE.Points(new THREE.BufferGeometry(), whsMat(9)); WHS.look.renderOrder = 3; lookScene.add(WHS.look); }
+  WHS.look.geometry.setAttribute("position", new THREE.BufferAttribute(pos, 3)); WHS.look.geometry.setAttribute("color", new THREE.BufferAttribute(col, 3));
+  WHS.look.geometry.computeBoundingSphere(); WHS.look.visible = WHS.on;
+};
+fetch("unesco.json").then((r) => (r.ok ? r.json() : null)).then((data) => {
+  if (!data || !data.sites) return;
+  window.BISITA_UNESCO = data;
+  // leave out sites that are already full Bisita places
+  WHS.sites = data.sites.filter((st) => !PLACES.some((p) => dirFor(p.lat, p.lon, st.lat, st.lon).km < 30));
+  const pos = new Float32Array(WHS.sites.length * 3), col = new Float32Array(WHS.sites.length * 3);
+  WHS.sites.forEach((st, i) => { st.gv = ll2v(st.lat, st.lon, 1.004); pos.set([st.gv.x, st.gv.y, st.gv.z], i * 3); col.set(WHS_COL[st.cat] || WHS_COL[""], i * 3); });
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(pos, 3)); g.setAttribute("color", new THREE.BufferAttribute(col, 3));
+  WHS.globe = new THREE.Points(g, whsMat(5)); WHS.globe.visible = WHS.on; globeScene.add(WHS.globe);
+  whsHere();
+  WHS.label = document.createElement("div"); WHS.label.className = "whs-label"; WHS.label.hidden = true; WHS.label.setAttribute("aria-hidden", "true"); lookWrap.appendChild(WHS.label);
+}).catch(() => {});
+$("whs-btn").addEventListener("click", () => {
+  WHS.on = !WHS.on; $("whs-btn").setAttribute("aria-pressed", WHS.on ? "true" : "false");
+  if (WHS.look) WHS.look.visible = WHS.on; if (WHS.globe) WHS.globe.visible = WHS.on; if (WHS.label) WHS.label.hidden = true;
+  try { localStorage.setItem("bisita-whs", WHS.on ? "on" : "off"); } catch (e) {}
+  say(WHS.on ? "Showing UNESCO World Heritage Sites" : "Hiding UNESCO World Heritage Sites");
+});
+// the site closest to a direction, within a few degrees
+function whsNearest(dir, maxDeg) {
+  let best = null, bestA = maxDeg;
+  for (const st of WHS.sites) { if (!st.dv) continue; const a = Math.acos(Math.min(1, st.dv.dot(dir))) / D; if (a < bestA) { bestA = a; best = st; } }
+  return best;
+}
+// a name under the dot you're aiming at, when no Bisita place is in focus
+function updateWhs(w, h) {
+  if (!WHS.label || !WHS.on || !WHS.sites.length) { if (WHS.label) WHS.label.hidden = true; return; }
+  const st = focused ? null : whsNearest(fwd, Math.max(1.5, look.fov / 25));
+  WHS.near = st;
+  if (!st) { WHS.label.hidden = true; return; }
+  tmp.copy(st.dv).multiplyScalar(45).project(camera);
+  WHS.label.style.left = (tmp.x * 0.5 + 0.5) * w + "px"; WHS.label.style.top = (-tmp.y * 0.5 + 0.5) * h + "px";
+  if (WHS.label.dataset.id !== st.id) { WHS.label.dataset.id = st.id; WHS.label.innerHTML = "<small>World Heritage</small>"; WHS.label.append(st.name.length > 34 ? st.name.slice(0, 32) + "…" : st.name); }
+  WHS.label.hidden = false;
+}
+function tapGlobe(x, y) {
+  if (!WHS.on || !WHS.globe) return;
+  ndc.set((x / innerWidth) * 2 - 1, -(y / innerHeight) * 2 + 1); ray.setFromCamera(ndc, camera);
+  const hit = ray.intersectObject(earth, false)[0]; if (!hit) return;
+  const p = hit.point.clone().normalize();
+  let best = null, bestA = 0.9 * (view.dist - 1) + 0.25;
+  for (const st of WHS.sites) { const a = Math.acos(Math.min(1, st.gv.clone().normalize().dot(p))) / D; if (a < bestA) { bestA = a; best = st; } }
+  if (best) showSitePop(best);
+}
 
 // ---------- place (flyover) scene ----------
 const placeScene = new THREE.Scene();
@@ -1785,6 +1894,7 @@ function locate(done, tries = 0) {
 
 // ---------- panel ----------
 function fillPanel(p) {
+  dispatchEvent(new CustomEvent("bisita:place", { detail: p }));
   const meta = VIEWS[p.id];
   $("p-cat").textContent = CATS[p.cat];
   $("p-name").textContent = p.name;
@@ -1898,7 +2008,7 @@ function frame(now) {
     { const u = dome.material.uniforms.uDay, t = theme === "day" ? 1 : 0; u.value += (t - u.value) * 0.08; biomeMat.color.setRGB(1 - 0.55 * u.value, 1 - 0.35 * u.value, 1 - 0.6 * u.value); }
     renderer.setClearColor(0x081113, dome.visible ? 1 : 0);
     renderer.render(lookScene, camera);
-    updateLook(w, h);
+    updateLook(w, h); updateWhs(w, h);
   } else if (galleryShown) {
     // the gallery covers the screen; skip drawing the flyover underneath
   } else {
@@ -1915,3 +2025,4 @@ requestAnimationFrame(frame);
 setTimeout(hideHint, 12000);
 })();
 </script>
+<script src="profile.js"></script>
