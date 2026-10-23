@@ -1955,6 +1955,38 @@ function fillPanel(p) {
   syncPause();
 }
 $("grip").addEventListener("click", () => { const t = $("panel").classList.toggle("tall"); $("grip").setAttribute("aria-label", t ? "Show less" : "Show more"); });
+// Phones: pull the panel. Pull down to make it smaller, pull further to close the
+// place and go back; pull the handle up to see more. Pulling down only takes over
+// from the text when it's already scrolled to the top, so reading still scrolls.
+(() => {
+  const panel = $("panel"), scroll = $("scroll"); let st = null;
+  const setTall = (t) => { panel.classList.toggle("tall", t); $("grip").setAttribute("aria-label", t ? "Show less" : "Show more"); };
+  panel.addEventListener("touchstart", (e) => {
+    if (innerWidth >= 900 || e.touches.length !== 1 || mode !== "place") return;
+    st = { x: e.touches[0].clientX, y: e.touches[0].clientY, grip: !!e.target.closest("#grip"), top: scroll.scrollTop <= 0, dy: 0, on: false };
+  }, { passive: true });
+  panel.addEventListener("touchmove", (e) => {
+    if (!st) return;
+    const dy = e.touches[0].clientY - st.y, dx = e.touches[0].clientX - st.x;
+    if (!st.on) {
+      if (Math.abs(dy) < 8) return;
+      if (Math.abs(dx) > Math.abs(dy) || !(st.grip || (st.top && dy > 0))) { st = null; return; }
+      st.on = true; panel.style.transition = "none";
+    }
+    e.preventDefault();
+    st.dy = dy;
+    panel.style.transform = `translateY(${dy > 0 ? dy : dy * 0.35}px)`;
+  }, { passive: false });
+  const end = () => {
+    if (!st) return; const { on, dy } = st; st = null; if (!on) return;
+    panel.style.transition = ""; panel.style.transform = "";
+    const tall = panel.classList.contains("tall");
+    if (dy < -40) setTall(true);
+    else if (tall && dy > 50 && dy < 220) setTall(false);
+    else if (dy > (tall ? 220 : 90)) { setTall(false); backToWorld(); }
+  };
+  panel.addEventListener("touchend", end); panel.addEventListener("touchcancel", end);
+})();
 $("scroll").addEventListener("click", (e) => { if (e.target.closest("summary") && innerWidth < 900) $("panel").classList.add("tall"); });
 function syncPause() {
   $("pause").setAttribute("aria-pressed", paused ? "true" : "false");
