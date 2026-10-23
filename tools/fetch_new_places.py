@@ -7,8 +7,11 @@ req = json.load(open(os.path.join(B, "tools", "requests", "places.json")))
 for r in req:
     if os.path.exists(os.path.join(B, "places", r["id"] + ".json")): continue
     print("satellite and elevation:", r["id"], flush=True)
-    subprocess.run([sys.executable, os.path.join(B, "fetch_place.py"), r["id"], str(r["lat"]), str(r["lon"]), str(r["km"]),
-                    json.dumps(r["months"]), os.path.join(B, "places")], check=False)
+    res = subprocess.run([sys.executable, os.path.join(B, "fetch_place.py"), r["id"], str(r["lat"]), str(r["lon"]), str(r["km"]),
+                    json.dumps(r["months"]), os.path.join(B, "places")], check=False, capture_output=True, text=True)
+    os.makedirs(os.path.join(B, "data"), exist_ok=True)
+    with open(os.path.join(B, "data", "fetch-log.txt"), "a") as log:
+        log.write(f"== {r['id']} exit {res.returncode}\n{res.stdout[-3000:]}\n{res.stderr[-6000:]}\n")
 # photos: search Wikimedia Commons, then download the top freely licensed ones
 sys.path.insert(0, os.path.join(B, "tools"))
 import commons_photos as cp
