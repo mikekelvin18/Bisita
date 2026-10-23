@@ -4,7 +4,7 @@ name: Fetch data
 on:
   workflow_dispatch:
   push:
-    paths: ["tools/fetch_unesco.py", ".github/workflows/data.yml", "tools/requests/**"]
+    paths: ["tools/fetch_unesco.py", "tools/fetch_new_places.py", ".github/workflows/data.yml", "tools/requests/**"]
   schedule:
     - cron: "17 6 1 * *"
 permissions:
@@ -18,9 +18,13 @@ jobs:
         with: { python-version: "3.12" }
       - name: UNESCO World Heritage list
         run: python3 tools/fetch_unesco.py
+      - name: New places (satellite, elevation, photos)
+        run: |
+          pip install numpy mgrs rasterio pillow
+          python3 tools/fetch_new_places.py
       - name: Commit results
         run: |
           git config user.name "bisita-data-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add data
+          git add -A data places thumbs photos.json
           git diff --cached --quiet || (git commit -m "Update data from Wikidata and Wikimedia Commons" && git push)
