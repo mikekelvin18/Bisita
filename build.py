@@ -12,7 +12,7 @@ for pid, ph in (json.load(open(B+'/photos.json')).items() if os.path.exists(B+'/
     if not ph: continue
     im = ImageOps.fit(Image.open(B+'/'+ph[0]['src']).convert('RGB'), (640, 480), Image.LANCZOS)
     im.save(D+'/places/'+pid+'-card.jpg', quality=82, optimize=True, progressive=True)
-for f in ('three.min.js','places.js','profile.js','earth.jpg','earth-bump.jpg','earth-land.png'): shutil.copy(B+'/site/'+f, D)
+for f in ('three.min.js','places.js','profile.js','us-map.json','earth.jpg','earth-bump.jpg','earth-land.png'): shutil.copy(B+'/site/'+f, D)
 if os.path.exists(B+'/data/unesco.json'): shutil.copy(B+'/data/unesco.json', D)
 photos=json.load(open(B+'/photos.json')) if os.path.exists(B+'/photos.json') else {}
 for ph in photos.values():

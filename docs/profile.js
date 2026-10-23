@@ -79,8 +79,10 @@ wrap.innerHTML = `
     <section class="pf-pane" data-pane="parks" hidden>
       <div class="pf-row"><h3>US National Park passport</h3><span class="pf-count" id="pf-pcount"></span></div>
       <div class="pf-bar"><i id="pf-pbar"></i></div>
-      <p class="pf-hint">Scratch a park's stamp when you visit it.</p>
-      <div class="pf-parks" id="pf-parks"></div>
+      <p class="pf-hint">Scratch the gold off each park you've visited. Zoom in for the crowded spots, like Utah.</p>
+      <div class="pf-smap" id="pf-smap"><canvas id="pf-sbase" aria-hidden="true"></canvas><canvas id="pf-sfoil" aria-label="Scratch-off map of the 63 US national parks. Use the list below to mark parks with a keyboard or screen reader."></canvas><span id="pf-zoomlbl"></span><p id="pf-stoast" hidden role="status"></p></div>
+      <div class="pf-stools"><button class="btn small" id="pf-mode" type="button" aria-pressed="false">Scratching</button><span class="sp"></span><button class="btn small" id="pf-zout" type="button" aria-label="Zoom out">&minus;</button><button class="btn small" id="pf-zin" type="button" aria-label="Zoom in">+</button></div>
+      <details class="pf-listwrap"><summary>All 63 parks</summary><div class="pf-plist" id="pf-plist"></div></details>
     </section>
     <section class="pf-pane" data-pane="places" hidden>
       <div class="pf-row"><h3>Bisita places</h3><span class="pf-count" id="pf-vcount"></span></div>
@@ -141,16 +143,26 @@ body:not(.look) #side > :not(#me-btn):not(#whs-btn) { display: none; }
 .pf-bar { height: 8px; border-radius: 4px; background: var(--raise); overflow: hidden; }
 .pf-bar i { display: block; height: 100%; width: 0; background: var(--sand); border-radius: 4px; transition: width .4s; }
 .pf-hint { font-size: 14px; color: var(--mist); margin: 10px 0 14px; }
-.pf-parks { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
-.pf-park { position: relative; aspect-ratio: 1 / 1.08; border-radius: 16px; overflow: hidden; background: var(--deep); border: 1px solid var(--line); touch-action: none; user-select: none; -webkit-user-select: none; }
-.pf-stamp { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 12px; text-align: center; }
-.pf-stamp .ring { width: 70px; height: 70px; border-radius: 50%; border: 3px double var(--sand); display: grid; place-items: center; transform: rotate(-12deg); color: var(--sand); font-weight: 700; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; line-height: 1.1; }
-.pf-stamp b { font-size: 14px; font-weight: 600; line-height: 1.2; color: var(--stone); }
-.pf-stamp small { font-size: 12px; color: var(--mist); }
-.pf-park canvas { position: absolute; inset: 0; width: 100%; height: 100%; transition: opacity .5s; cursor: grab; }
-.pf-park.done canvas { opacity: 0; pointer-events: none; }
-.pf-park .undo { position: absolute; top: 6px; right: 6px; width: 32px; height: 32px; border-radius: 16px; border: 0; background: rgba(8,17,19,.6); color: var(--mist); font-size: 18px; cursor: pointer; display: none; }
-.pf-park.done .undo { display: block; }
+.pf-smap { position: relative; border-radius: 16px; overflow: hidden; border: 1px solid var(--line); background: #0e2a33; }
+.pf-smap canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#pf-sfoil { touch-action: none; cursor: crosshair; }
+#pf-zoomlbl { position: absolute; top: 8px; left: 10px; font-size: 12px; font-weight: 700; color: var(--stone); text-shadow: 0 1px 3px #000; pointer-events: none; }
+#pf-stoast { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); margin: 0; padding: 6px 12px; border-radius: 14px; background: rgba(8,17,19,.85); color: var(--stone); font-size: 13px; font-weight: 600; white-space: nowrap; pointer-events: none; }
+#pf-stoast::before { content: "Visited: "; color: var(--sand); }
+.pf-stools { display: flex; gap: 8px; align-items: center; margin: 10px 0 4px; }
+.pf-stools .sp { flex: 1; }
+#pf-mode[aria-pressed="true"] { background: var(--stone); color: var(--night); border-color: var(--stone); }
+#pf-zin, #pf-zout { width: 44px; justify-content: center; font-size: 20px; padding: 0; }
+.pf-listwrap { margin-top: 10px; border-top: 1px solid var(--line); }
+.pf-listwrap summary { min-height: 48px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-weight: 600; list-style: none; }
+.pf-listwrap summary::-webkit-details-marker { display: none; }
+.pf-listwrap summary::after { content: "+"; color: var(--sand); font-size: 22px; }
+.pf-listwrap[open] summary::after { content: "\\2212"; }
+.pf-plist { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; padding-bottom: 8px; }
+.pf-pchip { text-align: left; padding: 8px 10px; border-radius: 12px; border: 1px solid var(--line); background: var(--deep); color: var(--stone); font: inherit; cursor: pointer; }
+.pf-pchip b { display: block; font-size: 14px; font-weight: 600; } .pf-pchip small { display: block; font-size: 12px; color: var(--mist); }
+.pf-pchip[aria-pressed="true"] { border-color: var(--sand); background: rgba(227,173,108,.14); }
+.pf-pchip[aria-pressed="true"] b::before { content: "\\2713  "; color: var(--sand); }
 .pf-place { display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 8px 0; border-bottom: 1px solid var(--line); }
 .pf-place img { width: 48px; height: 48px; border-radius: 12px; object-fit: cover; flex: none; background: var(--raise); }
 .pf-place div { flex: 1; min-width: 0; }
@@ -168,7 +180,7 @@ body:not(.look) #side > :not(#me-btn):not(#whs-btn) { display: none; }
 .pf-upload { width: 100%; justify-content: center; cursor: pointer; }
 #been[aria-pressed="true"], #pop-been[aria-pressed="true"] { background: var(--sand); color: #1d1408; border-color: var(--sand); }
 #pop-been { width: 100%; justify-content: center; margin-top: 8px; }
-@media (max-width: 420px) { .pf-stat b { font-size: 22px; } .pf-stat span { font-size: 10px; } .pf-parks { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 420px) { .pf-stat b { font-size: 22px; } .pf-stat span { font-size: 10px; } }
 `;
 document.head.appendChild(css);
 
@@ -268,54 +280,151 @@ function drawMap() {
   }
 }
 
-// ---------- national park passport (scratch-off) ----------
+// ---------- national park passport: a scratch-off map ----------
+// The whole country is covered in gold foil. Scratch it off with your finger;
+// once a park's spot is mostly uncovered, that park counts as visited. What you
+// scratch is remembered, just like a real scratch-off poster.
 function parkVisited(id) { return !!me.parks[id] || Object.entries(PARK_OF_PLACE).some(([pl, pk]) => pk === id && me.visited[pl]); }
 function parkDate(id) { return me.parks[id] || Object.entries(PARK_OF_PLACE).map(([pl, pk]) => (pk === id ? me.visited[pl] : null)).find(Boolean); }
-function renderParks() {
-  const box = $("pf-parks"); box.innerHTML = "";
+const SM = { map: null, mask: null, view: { s: 1, x: 0, y: 0 }, mode: "scratch", ready: false, saveT: 0 };
+const STATE_FILL = ["#9cc39a", "#c9d79a", "#e7c88f", "#9ec7c3", "#d9b3a0", "#b7c79a"];
+const MKEY = "bisita-scratch";
+fetch("us-map.json").then((r) => r.json()).then((m) => {
+  SM.map = m;
+  SM.states = m.states.map((s) => new Path2D(s.d)); SM.nation = new Path2D(m.nation); SM.inner = new Path2D(m.inner);
+  SM.cover = new Path2D(m.nation); m.insets.forEach((b) => SM.cover.rect(b.x, b.y, b.w, b.h));
+  // the scratched-away area, kept at map resolution
+  SM.mask = document.createElement("canvas"); SM.mask.width = m.w; SM.mask.height = m.h;
+  let saved = null; try { saved = localStorage.getItem(MKEY); } catch (e) {}
+  const done = () => { SM.ready = true; syncMaskToVisits(); if (!$("profile").hidden) drawScratch(); };
+  if (saved) { const im = new Image(); im.onload = () => { SM.mask.getContext("2d").drawImage(im, 0, 0); done(); }; im.onerror = done; im.src = saved; } else done();
+}).catch(() => {});
+function maskCtx() { return SM.mask.getContext("2d"); }
+function syncMaskToVisits() {
+  // parks marked in the list (or through a Bisita place) are scratched open too
+  const g = maskCtx(); g.fillStyle = "#000";
+  for (const pk of PARKS) if (parkVisited(pk.id)) { const p = SM.map.parks[pk.id]; if (p) { g.beginPath(); g.arc(p[0], p[1], 11, 0, 7); g.fill(); } }
+}
+function saveMask() { clearTimeout(SM.saveT); SM.saveT = setTimeout(() => { try { localStorage.setItem(MKEY, SM.mask.toDataURL("image/png")); } catch (e) {} }, 600); }
+function smSize() {
+  const base = $("pf-sbase"), foil = $("pf-sfoil"), wrap = $("pf-smap");
+  const w = wrap.clientWidth, h = Math.round(w * SM.map.h / SM.map.w), dpr = Math.min(2, devicePixelRatio || 1);
+  wrap.style.height = h + "px";
+  for (const c of [base, foil]) { if (c.width !== Math.round(w * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); } }
+  return { k: (w * dpr) / SM.map.w, dpr };
+}
+function smTransform(g, k) { const v = SM.view; g.setTransform(k * v.s, 0, 0, k * v.s, -v.x * k * v.s, -v.y * k * v.s); }
+function drawScratch() {
+  if (!SM.ready || !$("pf-smap")) return;
+  const { k, dpr } = smSize(), base = $("pf-sbase").getContext("2d"), foil = $("pf-sfoil").getContext("2d");
+  const W = $("pf-sbase").width, H = $("pf-sbase").height, m = SM.map;
+  // the colorful map underneath
+  base.setTransform(1, 0, 0, 1, 0, 0); base.fillStyle = "#0e2a33"; base.fillRect(0, 0, W, H);
+  smTransform(base, k);
+  SM.states.forEach((p, i) => { base.fillStyle = STATE_FILL[i % STATE_FILL.length]; base.fill(p); });
+  m.insets.forEach((b) => { base.fillStyle = "#9ec7c3"; base.fillRect(b.x, b.y, b.w, b.h); });
+  base.strokeStyle = "rgba(255,255,255,.75)"; base.lineWidth = 0.8 / SM.view.s; base.stroke(SM.inner);
+  base.strokeStyle = "rgba(14,42,51,.9)"; base.lineWidth = 1.2 / SM.view.s; base.stroke(SM.nation);
+  base.font = `600 ${9 / Math.sqrt(SM.view.s)}px Figtree, system-ui, sans-serif`; base.textAlign = "center";
+  m.insets.forEach((b) => { base.strokeStyle = "rgba(14,42,51,.6)"; base.strokeRect(b.x, b.y, b.w, b.h); base.fillStyle = "#14302f"; base.fillText(b.label, b.x + b.w / 2, b.y + b.h - 4); });
+  // park stamps, revealed as you scratch
+  for (const pk of PARKS) {
+    const p = m.parks[pk.id]; if (!p) continue; const on = parkVisited(pk.id), r = 6 / Math.sqrt(SM.view.s);
+    base.fillStyle = on ? "#1d6b4f" : "#2c4a46"; base.beginPath(); base.arc(p[0], p[1], r, 0, 7); base.fill();
+    base.strokeStyle = "#fff"; base.lineWidth = 1.2 / SM.view.s; base.stroke();
+    if (on) { // a small tree inside
+      base.fillStyle = "#fff"; base.beginPath(); base.moveTo(p[0], p[1] - r * 0.6); base.lineTo(p[0] - r * 0.45, p[1] + r * 0.35); base.lineTo(p[0] + r * 0.45, p[1] + r * 0.35); base.fill();
+      if (SM.view.s >= 1.8) { base.fillStyle = "#0e2a33"; base.fillText(pk.name, p[0], p[1] + r + 9 / Math.sqrt(SM.view.s)); }
+    }
+  }
+  // the gold foil on top, with what you've scratched cut out
+  foil.setTransform(1, 0, 0, 1, 0, 0); foil.clearRect(0, 0, W, H);
+  smTransform(foil, k);
+  const gr = foil.createLinearGradient(0, 0, m.w, m.h); gr.addColorStop(0, "#c9a476"); gr.addColorStop(0.45, "#efd9ad"); gr.addColorStop(0.55, "#e2c38f"); gr.addColorStop(1, "#b58e60");
+  foil.fillStyle = gr; foil.fill(SM.cover);
+  foil.save(); foil.clip(SM.cover); foil.globalAlpha = 0.16; foil.strokeStyle = "#fff"; foil.lineWidth = 1 / SM.view.s;
+  for (let i = -m.h; i < m.w; i += 7) { foil.beginPath(); foil.moveTo(i, 0); foil.lineTo(i + m.h, m.h); foil.stroke(); }
+  foil.globalAlpha = 1; foil.strokeStyle = "rgba(90,62,24,.35)"; foil.lineWidth = 0.7 / SM.view.s; foil.stroke(SM.inner); foil.restore();
+  // where each park is, pressed into the foil so you know where to scratch
+  for (const pk of PARKS) { const p = m.parks[pk.id]; if (!p) continue; foil.strokeStyle = "rgba(90,62,24,.7)"; foil.lineWidth = 1.2 / SM.view.s; foil.beginPath(); foil.arc(p[0], p[1], 5 / Math.sqrt(SM.view.s), 0, 7); foil.stroke(); }
+  foil.font = `600 ${9 / Math.sqrt(SM.view.s)}px Figtree, system-ui, sans-serif`; foil.textAlign = "center"; foil.fillStyle = "rgba(90,62,24,.85)";
+  m.insets.forEach((b) => foil.fillText(b.label, b.x + b.w / 2, b.y + b.h - 4));
+  foil.globalCompositeOperation = "destination-out"; foil.drawImage(SM.mask, 0, 0); foil.globalCompositeOperation = "source-over";
+  $("pf-zoomlbl").textContent = SM.view.s > 1.05 ? `${Math.round(SM.view.s * 10) / 10}×` : "";
+}
+function smPoint(e) { const b = $("pf-sfoil").getBoundingClientRect(), sx = SM.map.w / b.width; return [SM.view.x + (e.clientX - b.left) * sx / SM.view.s, SM.view.y + (e.clientY - b.top) * sx / SM.view.s]; }
+function smClampView() {
+  const v = SM.view, m = SM.map, vw = m.w / v.s, vh = m.h / v.s;
+  v.x = Math.max(0, Math.min(m.w - vw, v.x)); v.y = Math.max(0, Math.min(m.h - vh, v.y));
+}
+function smZoom(f, cx, cy) {
+  const v = SM.view, m = SM.map, ns = Math.max(1, Math.min(4, v.s * f)); if (ns === v.s) return;
+  // zoom toward where you last scratched, or the middle of what's on screen
+  cx = cx ?? (SM.focus ? SM.focus[0] : v.x + m.w / v.s / 2); cy = cy ?? (SM.focus ? SM.focus[1] : v.y + m.h / v.s / 2);
+  v.s = ns; v.x = cx - m.w / ns / 2; v.y = cy - m.h / ns / 2; smClampView(); drawScratch();
+}
+function smCheckParks(x, y) {
+  const g = maskCtx(), m = SM.map; let changed = false;
+  for (const pk of PARKS) {
+    if (parkVisited(pk.id)) continue; const p = m.parks[pk.id]; if (!p || Math.hypot(p[0] - x, p[1] - y) > 30) continue;
+    const r = 6, d = g.getImageData(Math.round(p[0] - r), Math.round(p[1] - r), r * 2, r * 2).data; let clear = 0, n = 0;
+    for (let yy = 0; yy < r * 2; yy++) for (let xx = 0; xx < r * 2; xx++) { if ((xx - r) ** 2 + (yy - r) ** 2 > r * r) continue; n++; if (d[(yy * r * 2 + xx) * 4 + 3] > 128) clear++; }
+    if (clear / n > 0.55) { me.parks[pk.id] = today(); changed = true; smToast(pk); if (navigator.vibrate) navigator.vibrate(25); }
+  }
+  if (changed) { save(); render(); renderParkList(); }
+}
+function smToast(pk) { const t = $("pf-stoast"); t.textContent = `${pk.name} · ${pk.state}`; t.hidden = false; clearTimeout(smToast.t); smToast.t = setTimeout(() => (t.hidden = true), 2200); }
+function setupScratch() {
+  if (setupScratch.done) return; setupScratch.done = true;
+  const cv = $("pf-sfoil"); let down = false, last = null, panFrom = null;
+  const pinch = new Map();
+  cv.addEventListener("pointerdown", (e) => {
+    if (!SM.ready) return; cv.setPointerCapture(e.pointerId); pinch.set(e.pointerId, [e.clientX, e.clientY]);
+    if (pinch.size > 1) { down = false; return; }
+    down = true; last = smPoint(e);
+    if (SM.mode === "move") panFrom = [e.clientX, e.clientY, SM.view.x, SM.view.y]; else rub(last, last);
+  });
+  cv.addEventListener("pointermove", (e) => {
+    if (pinch.has(e.pointerId)) {
+      const prev = pinch.get(e.pointerId); pinch.set(e.pointerId, [e.clientX, e.clientY]);
+      if (pinch.size === 2) { // two fingers: zoom
+        const [a, b] = [...pinch.values()], d1 = Math.hypot(a[0] - b[0], a[1] - b[1]);
+        const other = [...pinch.entries()].find(([k]) => k !== e.pointerId)[1], d0 = Math.hypot(prev[0] - other[0], prev[1] - other[1]);
+        if (d0 > 0) { const mid = smPoint({ clientX: (a[0] + b[0]) / 2, clientY: (a[1] + b[1]) / 2 }); const v = SM.view, ns = Math.max(1, Math.min(4, v.s * d1 / d0)); v.x = mid[0] - (mid[0] - v.x) * v.s / ns; v.y = mid[1] - (mid[1] - v.y) * v.s / ns; v.s = Math.round(ns * 100) / 100; smClampView(); drawScratch(); }
+        return;
+      }
+    }
+    if (!down) return;
+    if (SM.mode === "move" && panFrom) { const b = cv.getBoundingClientRect(), sx = SM.map.w / b.width / SM.view.s; SM.view.x = panFrom[2] - (e.clientX - panFrom[0]) * sx; SM.view.y = panFrom[3] - (e.clientY - panFrom[1]) * sx; smClampView(); drawScratch(); return; }
+    const p = smPoint(e); rub(last, p); last = p; SM.focus = p;
+  });
+  const end = (e) => { pinch.delete(e.pointerId); if (down && SM.mode === "scratch" && last) { smCheckParks(last[0], last[1]); saveMask(); } down = false; panFrom = null; };
+  cv.addEventListener("pointerup", end); cv.addEventListener("pointercancel", end);
+  function rub(a, b) {
+    const g = maskCtx(), r = 9 / SM.view.s; g.strokeStyle = g.fillStyle = "#000"; g.lineCap = "round"; g.lineWidth = r * 2;
+    g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); g.stroke();
+    if (rub.n = (rub.n || 0) + 1, rub.n % 6 === 0) smCheckParks(b[0], b[1]);
+    drawScratch();
+  }
+  $("pf-zin").addEventListener("click", () => smZoom(1.6));
+  $("pf-zout").addEventListener("click", () => smZoom(1 / 1.6));
+  $("pf-mode").addEventListener("click", () => { SM.mode = SM.mode === "scratch" ? "move" : "scratch"; $("pf-mode").textContent = SM.mode === "scratch" ? "Scratching" : "Moving"; $("pf-mode").setAttribute("aria-pressed", SM.mode === "move" ? "true" : "false"); cv.style.cursor = SM.mode === "move" ? "grab" : "crosshair"; });
+  addEventListener("resize", () => { if (!$("profile").hidden) drawScratch(); });
+}
+function renderParkList() {
+  const box = $("pf-plist"); box.innerHTML = "";
   PARKS.forEach((pk) => {
-    const done = parkVisited(pk.id);
-    const card = document.createElement("div"); card.className = "pf-park" + (done ? " done" : "");
-    card.innerHTML = `<div class="pf-stamp"><div class="ring">Visited<br>${done ? esc(nice(parkDate(pk.id))) : ""}</div><b>${esc(pk.name)}</b><small>${esc(pk.state)}</small></div><canvas aria-hidden="true"></canvas><button class="undo" type="button" aria-label="Unmark ${esc(pk.name)}">&times;</button>`;
-    card.setAttribute("role", "group"); card.setAttribute("aria-label", `${pk.name}, ${done ? "visited" : "not visited yet. Scratch to mark it visited"}`);
-    box.appendChild(card);
-    if (!done) scratchable(card, pk);
-    card.querySelector(".undo").addEventListener("click", () => { delete me.parks[pk.id]; save(); render(); renderParks(); });
-  });
-  const n = PARKS.filter((p) => parkVisited(p.id)).length;
-  $("pf-pcount").textContent = `${n} of ${PARKS.length}`; $("pf-pbar").style.width = (n / PARKS.length * 100) + "%";
-}
-function scratchable(card, pk) {
-  const cv = card.querySelector("canvas");
-  requestAnimationFrame(() => {
-    const r = card.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
-    cv.width = Math.max(10, r.width * dpr); cv.height = Math.max(10, r.height * dpr);
-    const g = cv.getContext("2d"), W = cv.width, H = cv.height;
-    // a brushed, foil-like cover with the park's name on it
-    const gr = g.createLinearGradient(0, 0, W, H); gr.addColorStop(0, "#c9a476"); gr.addColorStop(0.5, "#e8cfa2"); gr.addColorStop(1, "#b58e60");
-    g.fillStyle = gr; g.fillRect(0, 0, W, H);
-    g.globalAlpha = 0.18; g.strokeStyle = "#fff"; for (let i = -H; i < W; i += 6 * dpr) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i + H, H); g.stroke(); } g.globalAlpha = 1;
-    g.fillStyle = "#3b2a14"; g.textAlign = "center"; g.font = `600 ${14 * dpr}px Figtree, system-ui, sans-serif`;
-    const words = pk.name.split(" "), lines = []; let line = "";
-    for (const w of words) { if ((line + " " + w).trim().length > 16) { lines.push(line.trim()); line = w; } else line += " " + w; } lines.push(line.trim());
-    lines.forEach((l, i) => g.fillText(l, W / 2, H * 0.42 + (i - (lines.length - 1) / 2) * 18 * dpr));
-    g.font = `500 ${11 * dpr}px Figtree, system-ui, sans-serif`; g.fillStyle = "rgba(59,42,20,.75)"; g.fillText("Scratch when you visit", W / 2, H * 0.78);
-    let down = false, moves = 0;
-    const at = (e) => { const b = cv.getBoundingClientRect(); return [(e.clientX - b.left) * dpr, (e.clientY - b.top) * dpr]; };
-    const rub = (e) => { const [x, y] = at(e); g.globalCompositeOperation = "destination-out"; g.beginPath(); g.arc(x, y, 18 * dpr, 0, 7); g.fill(); g.globalCompositeOperation = "source-over"; if (++moves % 8 === 0) check(); };
-    const check = () => {
-      const d = g.getImageData(0, 0, W, H).data; let clear = 0, n = 0;
-      for (let i = 3; i < d.length; i += 4 * 16) { n++; if (d[i] < 20) clear++; }
-      if (clear / n > 0.45) { me.parks[pk.id] = today(); save(); card.classList.add("done"); card.querySelector(".ring").innerHTML = `Visited<br>${esc(nice(me.parks[pk.id]))}`; card.setAttribute("aria-label", `${pk.name}, visited`); render(); renderParksCount(); if (navigator.vibrate) navigator.vibrate(20); }
-    };
-    cv.addEventListener("pointerdown", (e) => { down = true; cv.setPointerCapture(e.pointerId); rub(e); });
-    cv.addEventListener("pointermove", (e) => { if (down) rub(e); });
-    cv.addEventListener("pointerup", () => { down = false; check(); });
-    cv.addEventListener("pointercancel", () => (down = false));
-    // keyboard: Enter or Space marks it
-    card.tabIndex = 0; card.addEventListener("keydown", (e) => { if ((e.key === "Enter" || e.key === " ") && !card.classList.contains("done")) { e.preventDefault(); me.parks[pk.id] = today(); save(); renderParks(); render(); } });
+    const on = parkVisited(pk.id), b = document.createElement("button"); b.type = "button"; b.className = "pf-pchip"; b.setAttribute("aria-pressed", on ? "true" : "false");
+    b.innerHTML = `<b>${esc(pk.name)}</b><small>${esc(pk.state)}${on ? " · " + esc(nice(parkDate(pk.id))) : ""}</small>`;
+    b.addEventListener("click", () => {
+      if (parkVisited(pk.id)) { delete me.parks[pk.id]; const p = SM.map && SM.map.parks[pk.id]; if (p) { const g = maskCtx(); g.globalCompositeOperation = "destination-out"; g.beginPath(); g.arc(p[0], p[1], 14, 0, 7); g.fill(); g.globalCompositeOperation = "source-over"; } }
+      else { me.parks[pk.id] = today(); if (SM.map) syncMaskToVisits(); }
+      save(); saveMask(); render(); renderParkList(); drawScratch();
+    });
+    box.appendChild(b);
   });
 }
+function renderParks() { setupScratch(); renderParkList(); renderParksCount(); requestAnimationFrame(drawScratch); }
 function renderParksCount() { const n = PARKS.filter((p) => parkVisited(p.id)).length; $("pf-pcount").textContent = `${n} of ${PARKS.length}`; $("pf-pbar").style.width = (n / PARKS.length * 100) + "%"; }
 
 // ---------- places, clubs, stats ----------
