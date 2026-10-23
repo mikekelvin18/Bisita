@@ -1664,5 +1664,404 @@
    "src": "places/zion-p4.jpg",
    "small": "places/zion-p4-s.jpg"
   }
+ ],
+ "amazon": [
+  {
+   "title": "File:Araracanga - Ara macao macao 03.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Araracanga_-_Ara_macao_macao_03.jpg",
+   "author": "Germano Roberto Sch\u00fc\u00fcr",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "w": 1800,
+   "h": 1301,
+   "src": "places/amazon-p0.jpg",
+   "small": "places/amazon-p0-s.jpg"
+  },
+  {
+   "title": "File:Anavilhanas2.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Anavilhanas2.jpg",
+   "author": "Jason Auch from Calgary, Canada",
+   "license": "CC BY 2.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+   "w": 3674,
+   "h": 2467,
+   "src": "places/amazon-p1.jpg",
+   "small": "places/amazon-p1-s.jpg"
+  },
+  {
+   "title": "File:Parque Nacional de Anavilhanas GuilhonAmaz\u00f4nia (31).jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Parque_Nacional_de_Anavilhanas_GuilhonAmaz%C3%B4nia_(31).jpg",
+   "author": "GuilhonAmazonia",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "w": 4000,
+   "h": 3000,
+   "src": "places/amazon-p2.jpg",
+   "small": "places/amazon-p2-s.jpg"
+  },
+  {
+   "title": "File:Parque Nacional de Anavilhanas GuilhonAmaz\u00f4nia (7).jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Parque_Nacional_de_Anavilhanas_GuilhonAmaz%C3%B4nia_(7).jpg",
+   "author": "GuilhonAmazonia",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "w": 5984,
+   "h": 3376,
+   "src": "places/amazon-p3.jpg",
+   "small": "places/amazon-p3-s.jpg"
+  },
+  {
+   "title": "File:Parque Nacional de Anavilhanas GuilhonAmaz\u00f4nia (21).jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Parque_Nacional_de_Anavilhanas_GuilhonAmaz%C3%B4nia_(21).jpg",
+   "author": "GuilhonAmazonia",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "w": 4000,
+   "h": 3000,
+   "src": "places/amazon-p4.jpg",
+   "small": "places/amazon-p4-s.jpg"
+  }
+ ],
+ "chichen-itza": [
+  {
+   "title": "File:Chichen Itza 3.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Chichen_Itza_3.jpg",
+   "author": "Daniel Schwen",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "w": 9771,
+   "h": 5197,
+   "src": "places/chichen-itza-p0.jpg",
+   "small": "places/chichen-itza-p0-s.jpg"
+  },
+  {
+   "title": "File:Serpent \u00e0 plumes Chichen Itza.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Serpent_%C3%A0_plumes_Chichen_Itza.jpg",
+   "author": "Jebulon",
+   "license": "CC0",
+   "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "w": 4466,
+   "h": 2466,
+   "src": "places/chichen-itza-p1.jpg",
+   "small": "places/chichen-itza-p1-s.jpg"
+  },
+  {
+   "title": "File:Chich\u00e9n Itz\u00e1 - 21.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Chich%C3%A9n_Itz%C3%A1_-_21.jpg",
+   "author": "Carlos Delgado",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "w": 3000,
+   "h": 2250,
+   "src": "places/chichen-itza-p2.jpg",
+   "small": "places/chichen-itza-p2-s.jpg"
+  },
+  {
+   "title": "File:Chich\u00e9n Itz\u00e1 - 17.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Chich%C3%A9n_Itz%C3%A1_-_17.jpg",
+   "author": "Carlos Delgado",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "w": 3000,
+   "h": 2250,
+   "src": "places/chichen-itza-p3.jpg",
+   "small": "places/chichen-itza-p3-s.jpg"
+  },
+  {
+   "title": "File:Templo el Castillo - Chichen Itza-Yucatan-Mexico0222.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Templo_el_Castillo_-_Chichen_Itza-Yucatan-Mexico0222.jpg",
+   "author": "Diego Delso",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "w": 2464,
+   "h": 1848,
+   "src": "places/chichen-itza-p4.jpg",
+   "small": "places/chichen-itza-p4-s.jpg"
+  }
+ ],
+ "christ-the-redeemer": [
+  {
+   "title": "File:Rio skyline and Cristo Redentor from Sugarloaf Mountain, Brazil.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Rio_skyline_and_Cristo_Redentor_from_Sugarloaf_Mountain,_Brazil.jpg",
+   "author": "Wilfredor",
+   "license": "CC0",
+   "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "w": 8025,
+   "h": 4834,
+   "src": "places/christ-the-redeemer-p0.jpg",
+   "small": "places/christ-the-redeemer-p0-s.jpg"
+  },
+  {
+   "title": "File:Redentor Over Clouds 1.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Redentor_Over_Clouds_1.jpg",
+   "author": "Donatas Dabravolskas",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "w": 4032,
+   "h": 2688,
+   "src": "places/christ-the-redeemer-p1.jpg",
+   "small": "places/christ-the-redeemer-p1-s.jpg"
+  },
+  {
+   "title": "File:Unique Moment with the Moon and Christ the Redeemer 3.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Unique_Moment_with_the_Moon_and_Christ_the_Redeemer_3.jpg",
+   "author": "Donatas Dabravolskas",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "w": 3450,
+   "h": 2300,
+   "src": "places/christ-the-redeemer-p2.jpg",
+   "small": "places/christ-the-redeemer-p2-s.jpg"
+  },
+  {
+   "title": "File:Corcovado sunset silhouette.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Corcovado_sunset_silhouette.jpg",
+   "author": "Jay.Jarosz",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "w": 3080,
+   "h": 2200,
+   "src": "places/christ-the-redeemer-p3.jpg",
+   "small": "places/christ-the-redeemer-p3-s.jpg"
+  },
+  {
+   "title": "File:Unique Moment with the Sun and Christ the Redeemer 4.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Unique_Moment_with_the_Sun_and_Christ_the_Redeemer_4.jpg",
+   "author": "Donatas Dabravolskas",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "w": 3336,
+   "h": 2216,
+   "src": "places/christ-the-redeemer-p4.jpg",
+   "small": "places/christ-the-redeemer-p4-s.jpg"
+  }
+ ],
+ "colosseum": [
+  {
+   "title": "File:Rom (IT), Kolosseum -- 2024 -- 0610.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Rom_(IT),_Kolosseum_--_2024_--_0610.jpg",
+   "author": "Anil \u00d6ztas",
+   "license": "CC BY 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+   "w": 5327,
+   "h": 3551,
+   "src": "places/colosseum-p0.jpg",
+   "small": "places/colosseum-p0-s.jpg"
+  },
+  {
+   "title": "File:Colosseum in Rome-April 2007-1- copie 2B.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Colosseum_in_Rome-April_2007-1-_copie_2B.jpg",
+   "author": "Diliff",
+   "license": "CC BY-SA 2.5",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.5",
+   "w": 4827,
+   "h": 2833,
+   "src": "places/colosseum-p1.jpg",
+   "small": "places/colosseum-p1-s.jpg"
+  },
+  {
+   "title": "File:Colosseo di Roma panoramic.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Colosseo_di_Roma_panoramic.jpg",
+   "author": "Paolo Costa Baldi",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "w": 7335,
+   "h": 3854,
+   "src": "places/colosseum-p2.jpg",
+   "small": "places/colosseum-p2-s.jpg"
+  },
+  {
+   "title": "File:Amphith\u00e9\u00e2tre d\u2019El Jem vue aerienne (2023) 1.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Amphith%C3%A9%C3%A2tre_d%E2%80%99El_Jem_vue_aerienne_(2023)_1.jpg",
+   "author": "Skander zarrad",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "w": 5850,
+   "h": 3900,
+   "src": "places/colosseum-p3.jpg",
+   "small": "places/colosseum-p3-s.jpg"
+  },
+  {
+   "title": "File:Colosseum of Rome and Roman forum.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Colosseum_of_Rome_and_Roman_forum.jpg",
+   "author": "Wilfredor",
+   "license": "CC0",
+   "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "w": 7316,
+   "h": 4330,
+   "src": "places/colosseum-p4.jpg",
+   "small": "places/colosseum-p4-s.jpg"
+  }
+ ],
+ "jeju": [
+  {
+   "title": "File:Wooden staircase steps in the forest of Hallasan Park Eorimok Trail at dusk on Jeju Island in South Korea.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Wooden_staircase_steps_in_the_forest_of_Hallasan_Park_Eorimok_Trail_at_dusk_on_Jeju_Island_in_South_Korea.jpg",
+   "author": "Basile Morin",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "w": 6392,
+   "h": 4319,
+   "src": "places/jeju-p0.jpg",
+   "small": "places/jeju-p0-s.jpg"
+  },
+  {
+   "title": "File:Wooden staircase along Yeongsil Trail with the mountains of Hallasan Park Jeju Island South Korea.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Wooden_staircase_along_Yeongsil_Trail_with_the_mountains_of_Hallasan_Park_Jeju_Island_South_Korea.jpg",
+   "author": "Basile Morin",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "w": 6720,
+   "h": 4148,
+   "src": "places/jeju-p1.jpg",
+   "small": "places/jeju-p1-s.jpg"
+  },
+  {
+   "title": "File:Seolmundaehalmang.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Seolmundaehalmang.jpg",
+   "author": "Bernard Gagnon",
+   "license": "CC0",
+   "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "w": 4482,
+   "h": 2988,
+   "src": "places/jeju-p2.jpg",
+   "small": "places/jeju-p2-s.jpg"
+  },
+  {
+   "title": "File:Green vegetation on the low cloud-swept relief in Hallasan National Park Jeju South Korea.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Green_vegetation_on_the_low_cloud-swept_relief_in_Hallasan_National_Park_Jeju_South_Korea.jpg",
+   "author": "Basile Morin",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "w": 6716,
+   "h": 4477,
+   "src": "places/jeju-p3.jpg",
+   "small": "places/jeju-p3-s.jpg"
+  },
+  {
+   "title": "File:Winter Hallasan Summit.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Winter_Hallasan_Summit.jpg",
+   "author": "Jaccoob23",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "w": 4000,
+   "h": 3000,
+   "src": "places/jeju-p4.jpg",
+   "small": "places/jeju-p4-s.jpg"
+  }
+ ],
+ "puerto-princesa": [
+  {
+   "title": "File:Puerto Princesa Subterranean Park, limestone formations, Palawan, Philippines.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Puerto_Princesa_Subterranean_Park,_limestone_formations,_Palawan,_Philippines.jpg",
+   "author": "Vyacheslav Argenberg",
+   "license": "CC BY 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+   "w": 4000,
+   "h": 2667,
+   "src": "places/puerto-princesa-p0.jpg",
+   "small": "places/puerto-princesa-p0-s.jpg"
+  },
+  {
+   "title": "File:Puerto Princesa Underground River.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Puerto_Princesa_Underground_River.jpg",
+   "author": "Mike Gonzalez",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "w": 2816,
+   "h": 1880,
+   "src": "places/puerto-princesa-p1.jpg",
+   "small": "places/puerto-princesa-p1-s.jpg"
+  },
+  {
+   "title": "File:Palawan Underground.JPG",
+   "page": "https://commons.wikimedia.org/wiki/File:Palawan_Underground.JPG",
+   "author": "Benjamhille",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "w": 3456,
+   "h": 2304,
+   "src": "places/puerto-princesa-p2.jpg",
+   "small": "places/puerto-princesa-p2-s.jpg"
+  },
+  {
+   "title": "File:Limestone cliffs at the entrance to Puerto Princesa Subterranean River Cave, Palawan, Philippines.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Limestone_cliffs_at_the_entrance_to_Puerto_Princesa_Subterranean_River_Cave,_Palawan,_Philippines.jpg",
+   "author": "Vyacheslav Argenberg",
+   "license": "CC BY 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+   "w": 4000,
+   "h": 2667,
+   "src": "places/puerto-princesa-p3.jpg",
+   "small": "places/puerto-princesa-p3-s.jpg"
+  },
+  {
+   "title": "File:The beach of South China Sea near the entrance to Puerto Princesa Subterranean River Cave, Palawan, Philippines.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:The_beach_of_South_China_Sea_near_the_entrance_to_Puerto_Princesa_Subterranean_River_Cave,_Palawan,_Philippines.jpg",
+   "author": "Vyacheslav Argenberg",
+   "license": "CC BY 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
+   "w": 4000,
+   "h": 2667,
+   "src": "places/puerto-princesa-p4.jpg",
+   "small": "places/puerto-princesa-p4-s.jpg"
+  }
+ ],
+ "table-mountain": [
+  {
+   "title": "File:\u041a\u044b\u0437\u044b\u043b\u043a\u0443\u043f \u043d\u0430 \u0440\u0430\u0441\u0441\u0432\u0435\u0442\u0435.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:%D0%9A%D1%8B%D0%B7%D1%8B%D0%BB%D0%BA%D1%83%D0%BF_%D0%BD%D0%B0_%D1%80%D0%B0%D1%81%D1%81%D0%B2%D0%B5%D1%82%D0%B5.jpg",
+   "author": "\u041c\u0430\u043a\u0441\u0430\u044279",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "w": 3926,
+   "h": 2859,
+   "src": "places/table-mountain-p0.jpg",
+   "small": "places/table-mountain-p0-s.jpg"
+  },
+  {
+   "title": "File:Sunset in Saxon Switzerland.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Sunset_in_Saxon_Switzerland.jpg",
+   "author": "Michael G\u00e4bler",
+   "license": "CC BY 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+   "w": 2780,
+   "h": 1831,
+   "src": "places/table-mountain-p1.jpg",
+   "small": "places/table-mountain-p1-s.jpg"
+  },
+  {
+   "title": "File:Cape Town (ZA), Table Mountain -- 2024 -- 2825.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Cape_Town_(ZA),_Table_Mountain_--_2024_--_2825.jpg",
+   "author": "Dietmar Rabich",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "w": 6720,
+   "h": 4200,
+   "src": "places/table-mountain-p2.jpg",
+   "small": "places/table-mountain-p2-s.jpg"
+  },
+  {
+   "title": "File:Cape Town (ZA), Table Mountain -- 2024 -- 2821.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Cape_Town_(ZA),_Table_Mountain_--_2024_--_2821.jpg",
+   "author": "Dietmar Rabich",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "w": 6720,
+   "h": 4480,
+   "src": "places/table-mountain-p3.jpg",
+   "small": "places/table-mountain-p3-s.jpg"
+  },
+  {
+   "title": "File:Cape Town (ZA), Table Mountain -- 2024 -- 3437.jpg",
+   "page": "https://commons.wikimedia.org/wiki/File:Cape_Town_(ZA),_Table_Mountain_--_2024_--_3437.jpg",
+   "author": "Dietmar Rabich",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "w": 6559,
+   "h": 3689,
+   "src": "places/table-mountain-p4.jpg",
+   "small": "places/table-mountain-p4-s.jpg"
+  }
  ]
 }
