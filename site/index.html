@@ -113,6 +113,20 @@ body:not(.look) #side > #whs-btn { display: inline-flex; }
 .pop-body p { margin: 0; } #pop-meta { color: var(--mist); font-size: 15px; margin-bottom: 14px; }
 .pop-body .btn { width: 100%; justify-content: center; }
 .pop-x { position: absolute; top: 10px; right: 10px; width: 44px; height: 44px; border-radius: 22px; border: 0; background: rgba(8,17,19,.7); color: var(--stone); font-size: 26px; line-height: 1; cursor: pointer; }
+#pop-note { font-size: 15px; line-height: 1.45; margin: -4px 0 12px !important; }
+#pop-cam { font-size: 13px; line-height: 1.4; color: var(--mist); margin: 10px 0 0 !important; }
+#pop-cam.rule { color: var(--sand); }
+#trackbar { position: fixed; z-index: 5; left: 50%; transform: translateX(-50%); top: calc(76px + env(safe-area-inset-top, 0px)); display: flex; align-items: center; gap: 10px; padding: 4px 4px 4px 8px; border-radius: 999px; border: 1px solid var(--line); background: rgba(8,17,19,.72); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); max-width: calc(100% - 32px); }
+#trackbar[hidden], body:not(.look) #trackbar { display: none; }
+#tb-ico { width: 32px; height: 32px; flex: none; }
+#trackbar b { display: block; font-size: 14px; line-height: 1.15; }
+#trackbar small { display: block; font-size: 11px; color: var(--mist); letter-spacing: .04em; white-space: nowrap; }
+#tb-x { width: 40px; height: 40px; flex: none; border-radius: 20px; border: 0; background: rgba(233,227,214,.1); color: var(--stone); font-size: 22px; line-height: 1; cursor: pointer; }
+body.tracking #hint { display: none; }
+.track-label { position: absolute; left: 0; top: 0; pointer-events: none; transform: translate(-50%, 0); text-align: center; white-space: nowrap; font-size: 12px; font-weight: 600; color: var(--stone); text-shadow: 0 1px 2px rgba(0,0,0,.9), 0 0 8px rgba(0,0,0,.6); opacity: .85; }
+.track-label small { display: block; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--sand); }
+.track-label.on { opacity: 1; font-size: 13px; }
+.res.animal b::before { content: ""; display: inline-block; width: 22px; height: 22px; margin: -4px 8px -5px 0; vertical-align: baseline; background: var(--panda-ico) center/contain no-repeat; }
 #focus { position: fixed; z-index: 4; left: max(16px, env(safe-area-inset-left, 0px)); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); display: none; align-items: flex-end; gap: 14px; max-width: calc(100% - 32px); }
 body.look #focus:not([hidden]) { display: flex; }
 #f-name { font-family: var(--display); font-size: 30px; line-height: 1.05; margin: 0; text-shadow: 0 2px 12px rgba(0,0,0,.8); }
@@ -288,6 +302,8 @@ a { color: var(--sea); }
       <p class="eyebrow" id="pop-cat"></p>
       <h2 id="pop-name"></h2>
       <p id="pop-meta"></p>
+      <p id="pop-note" hidden></p>
+      <p id="pop-cam" hidden></p>
       <button class="btn primary" id="pop-go" type="button">See photos and 3D</button>
     </div>
   </div>
@@ -295,6 +311,11 @@ a { color: var(--sea); }
 <div id="focus" hidden>
   <div><p id="f-name"></p><p id="f-meta"></p><div id="f-layers" role="group" aria-label="Places in this direction, near to far" hidden></div></div>
   <button class="btn primary" id="f-go" type="button">Explore</button>
+</div>
+<div id="trackbar" hidden role="status">
+  <canvas id="tb-ico" width="64" height="64" aria-hidden="true"></canvas>
+  <div><b id="tb-name"></b><small id="tb-count"></small></div>
+  <button id="tb-x" type="button" aria-label="Stop showing animals">&times;</button>
 </div>
 <div id="edge" hidden aria-hidden="true"><i>→</i><b></b><small></small></div>
 <div id="start" hidden role="dialog" aria-modal="true" aria-labelledby="start-title">
@@ -334,7 +355,7 @@ a { color: var(--sea); }
   </button>
   <button class="btn" id="find" type="button">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
-    <span class="lbl">Find a place</span>
+    <span class="lbl">Search</span>
   </button>
 </header>
 
@@ -390,8 +411,8 @@ a { color: var(--sea); }
 
 <div id="finder" hidden role="dialog" aria-modal="true" aria-labelledby="find-title">
   <div class="find-head">
-    <label for="q" class="sr" id="find-title">Find a place</label>
-    <input id="q" type="search" placeholder="Type a place or country" autocomplete="off">
+    <label for="q" class="sr" id="find-title">Search places and animals</label>
+    <input id="q" type="search" placeholder="A place, country or animal" autocomplete="off">
     <button class="btn" id="find-close" type="button">Close</button>
   </div>
   <div id="results"></div>
@@ -414,6 +435,7 @@ a { color: var(--sea); }
 
 <script src="three.min.js"></script>
 <script src="places.js" charset="utf-8"></script>
+<script src="animals.js" charset="utf-8"></script>
 <script>
 window.PLACE_VIEWS = __PLACE_VIEWS__;
 </script>
@@ -1174,7 +1196,7 @@ const nadir = document.createElement("div"); nadir.className = "nadir"; nadir.se
 nadir.textContent = "Straight down: the opposite side of the Earth"; lookWrap.appendChild(nadir);
 function fmtDist(km) { return useMiles ? `${Math.round(km * 0.621371).toLocaleString()} mi` : `${Math.round(km).toLocaleString()} km`; }
 function compassWord(b) { return ["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"][Math.round(b / 45) % 8]; }
-var whsHere = null;
+var whsHere = null, trackHere = null;
 function setHere(c) {
   here = c; $("where-txt").textContent = c[0];
   try { localStorage.setItem("skyview-here", JSON.stringify(c[0] === "Your location" ? c : c[0])); } catch (e) {}
@@ -1191,6 +1213,7 @@ function setHere(c) {
   dome.material.uniforms.uU.value.set(Math.cos(la) * Math.cos(lo), Math.cos(la) * Math.sin(lo), Math.sin(la));
   setBiome(c[3] || "prairie"); applyScene();
   if (whsHere) whsHere();
+  if (trackHere) trackHere();
 }
 function aimNearest() {
   const n = lookItems.reduce((a, b) => (b.d.km < a.d.km ? b : a));
@@ -1230,6 +1253,8 @@ function updateLook(w, h) {
   if (pinned) best = pinned;
   const rev = lookItems.find((it) => it.revealed);
   if (rev) best = rev;
+  // searching an animal: the places step back into a faint backdrop
+  if (TRACK.on) best = null;
   const k = Math.min(1, dt * (reduce ? 60 : 4));
   // labels: one per stack (the layer in focus, or the front one), avoiding overlaps
   const boxes = [];
@@ -1274,8 +1299,13 @@ function updateLook(w, h) {
     if (it.art) { it.mat.opacity = Math.min(1, Math.max(0.8, it.op) + it.reveal); it.mat.color.copy(col); }
     const target = it.revealed ? 1 : 0;
     it.reveal += (target - it.reveal) * k;
+    if (TRACK.on) {
+      if (it.ghostMat) it.ghostMat.opacity *= 0.25; if (it.silMat) it.silMat.opacity *= 0.25;
+      if (it.art) it.mat.opacity *= 0.25; if (it.shadowMat) it.shadowMat.opacity = 0;
+      it.label.hidden = true;
+    }
   }
-  if (best !== focused) {
+  if (best !== focused && !TRACK.aim) {
     focused = best;
     const hud = $("focus");
     if (focused) {
@@ -1285,7 +1315,7 @@ function updateLook(w, h) {
       hud.hidden = false;
     } else hud.hidden = true;
   }
-  showStack(focused && focused.stack, focused);
+  if (!TRACK.aim) showStack(focused && focused.stack, focused);
   // nothing in view: an arrow at the edge points to the nearest place by angle
   const edge = $("edge");
   const inView = lookItems.some((it) => it.dv.dot(fwd) > Math.cos(Math.min(60, look.fov * 0.45) * D));
@@ -1315,9 +1345,10 @@ const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
 function tapLook(x, y) {
   ndc.set((x / innerWidth) * 2 - 1, -(y / innerHeight) * 2 + 1);
   ray.setFromCamera(ndc, camera);
+  if (trackTap(ray.ray.direction) || TRACK.on) return;
   const hits = ray.intersectObjects(lookItems.map((it) => it.hit), false);
   if (!hits.length) {
-    if (WHS.on && WHS.sites.length) { const st = whsNearest(ray.ray.direction, Math.max(2, look.fov / 18)); if (st) showSitePop(st); }
+    if (WHS.on && !TRACK.on && WHS.sites.length) { const st = whsNearest(ray.ray.direction, Math.max(2, look.fov / 18)); if (st) showSitePop(st); }
     return;
   }
   const items = hits.map((h) => h.object.userData.item);
@@ -1366,12 +1397,12 @@ function stepZoom(now) {
   look.yaw = (z.from.yaw + (z.to.yaw - z.from.yaw) * e + 360) % 360; look.pitch = z.from.pitch + (z.to.pitch - z.from.pitch) * e; look.fov = z.from.fov + (z.to.fov - z.from.fov) * e;
   if (k >= 1) { zoomAnim = null; z.it.revealed = false; showPop(z.it); setTimeout(() => (look.fov = z.from.fov), 600); }
 }
-$("f-go").addEventListener("click", () => { if (focused) approach(focused); });
+$("f-go").addEventListener("click", () => { if (TRACK.aim) { showTrackPop(TRACK.aim.sel); return; } if (focused) approach(focused); });
 let popItem = null;
-let popSite = null;
+let popSite = null, popTrack = null;
 function showPop(it) {
   dispatchEvent(new CustomEvent("bisita:pop", { detail: it.p }));
-  popItem = it; popSite = null; $("pop-credit").hidden = true; $("pop-img").hidden = false;
+  hidePop(); popItem = it; $("pop-credit").hidden = true; $("pop-img").hidden = false;
   $("pop-go").textContent = "See photos and 3D";
   $("pop-img").src = `places/${it.p.id}-card.jpg`; $("pop-img").alt = `${it.p.name}`;
   $("pop-cat").textContent = CATS[it.p.cat];
@@ -1379,10 +1410,10 @@ function showPop(it) {
   $("pop-meta").textContent = `${it.p.country} · ${fmtDist(it.d.km)} ${compassWord(it.d.brg)}`;
   $("pop").hidden = false; setTimeout(() => $("pop-go").focus(), 30);
 }
-function hidePop() { $("pop").hidden = true; popItem = null; popSite = null; }
+function hidePop() { $("pop").hidden = true; popItem = null; popSite = null; popTrack = null; $("pop-note").hidden = $("pop-cam").hidden = true; $("pop-go").hidden = false; }
 const CAT_WORD = { cultural: "Cultural", natural: "Natural", mixed: "Cultural and natural" };
 function showSitePop(st) {
-  popItem = null; popSite = st;
+  hidePop(); popSite = st;
   const d = dirFor(here[1], here[2], st.lat, st.lon);
   dispatchEvent(new CustomEvent("bisita:pop", { detail: { id: "whs-" + st.id, name: st.name, country: (st.countries || []).join(" and "), lat: st.lat, lon: st.lon, whs: true } }));
   const ph = st.photo;
@@ -1399,6 +1430,7 @@ $("pop-x").addEventListener("click", hidePop);
 $("pop-img").addEventListener("error", () => { $("pop-img").hidden = true; $("pop-credit").hidden = true; });
 $("pop").addEventListener("click", (e) => { if (e.target === $("pop")) hidePop(); });
 $("pop-go").addEventListener("click", () => {
+  if (popTrack) { if (popTrack.cam) open(popTrack.cam.url, "_blank", "noopener"); return; }
   if (popSite) { open(`https://whc.unesco.org/en/list/${popSite.id}/`, "_blank", "noopener"); return; }
   const it = popItem; hidePop(); if (it) visit(it.p);
 });
@@ -1456,6 +1488,7 @@ function whsNearest(dir, maxDeg) {
 // a name under the dot you're aiming at, when no Bisita place is in focus
 function updateWhs(w, h) {
   if (!WHS.label || !WHS.on || !WHS.sites.length) { if (WHS.label) WHS.label.hidden = true; return; }
+  if (TRACK.on) { WHS.label.hidden = true; return; }
   const st = focused ? null : whsNearest(fwd, Math.max(1.5, look.fov / 25));
   WHS.near = st;
   if (!st) { WHS.label.hidden = true; return; }
@@ -1463,6 +1496,211 @@ function updateWhs(w, h) {
   WHS.label.style.left = (tmp.x * 0.5 + 0.5) * w + "px"; WHS.label.style.top = (-tmp.y * 0.5 + 0.5) * h + "px";
   if (WHS.label.dataset.id !== st.id) { WHS.label.dataset.id = st.id; WHS.label.innerHTML = "<small>World Heritage</small>"; WHS.label.append(st.name.length > 34 ? st.name.slice(0, 32) + "…" : st.name); }
   WHS.label.hidden = false;
+}
+// ---------- animal search ----------
+// Search an animal (pandas first) and every place you can legally and publicly
+// see it shows up in its real direction as a ghost of the animal, the way the
+// places do. Places that line up in one direction share one ghost, and the
+// bottom panel lets you step through them near to far, like the place layers.
+const KINDS = window.ANIMAL_KINDS || {};
+function drawPanda(g, S, reserve) {
+  const c = S / 2, u = S / 256;
+  g.clearRect(0, 0, S, S);
+  const glow = g.createRadialGradient(c, c, 0, c, c, c);
+  glow.addColorStop(0, "rgba(233,227,214,.32)"); glow.addColorStop(0.6, "rgba(233,227,214,.1)"); glow.addColorStop(1, "rgba(233,227,214,0)");
+  g.fillStyle = glow; g.fillRect(0, 0, S, S);
+  if (reserve) { // a dashed ring: the whole reserve, not one spot
+    g.setLineDash([10 * u, 9 * u]); g.lineWidth = 4 * u; g.strokeStyle = "rgba(196,227,190,.85)";
+    g.beginPath(); g.arc(c, c + 6 * u, 112 * u, 0, Math.PI * 2); g.stroke(); g.setLineDash([]);
+  }
+  g.lineWidth = 6 * u; g.strokeStyle = "rgba(255,255,255,.95)";
+  g.shadowColor = "rgba(255,255,255,.6)"; g.shadowBlur = 12 * u;
+  for (const x of [-56, 56]) { g.beginPath(); g.arc(c + x * u, 82 * u, 27 * u, 0, Math.PI * 2); g.fillStyle = "rgba(18,24,24,.78)"; g.fill(); g.stroke(); }
+  g.beginPath(); g.ellipse(c, 142 * u, 78 * u, 70 * u, 0, 0, Math.PI * 2); g.fillStyle = "rgba(255,255,255,.42)"; g.fill(); g.stroke();
+  g.shadowBlur = 0;
+  for (const x of [-1, 1]) {
+    g.beginPath(); g.ellipse(c + x * 30 * u, 136 * u, 18 * u, 27 * u, x * -0.55, 0, Math.PI * 2); g.fillStyle = "rgba(18,24,24,.85)"; g.fill();
+    g.beginPath(); g.arc(c + x * 27 * u, 130 * u, 5.5 * u, 0, Math.PI * 2); g.fillStyle = "#fff"; g.fill();
+  }
+  g.beginPath(); g.ellipse(c, 168 * u, 12 * u, 8 * u, 0, 0, Math.PI * 2); g.fillStyle = "rgba(18,24,24,.9)"; g.fill();
+  g.beginPath(); g.moveTo(c - 14 * u, 184 * u); g.quadraticCurveTo(c, 196 * u, c + 14 * u, 184 * u); g.lineWidth = 4 * u; g.strokeStyle = "rgba(18,24,24,.8)"; g.stroke();
+}
+const PANDA_TEX = [false, true].map((reserve) => { const cv = document.createElement("canvas"); cv.width = cv.height = 256; drawPanda(cv.getContext("2d"), 256, reserve); const t = new THREE.CanvasTexture(cv); t.encoding = THREE.sRGBEncoding; return t; });
+{ const cv = document.createElement("canvas"); cv.width = cv.height = 64; drawPanda(cv.getContext("2d"), 64, false); document.documentElement.style.setProperty("--panda-ico", `url(${cv.toDataURL()})`); drawPanda($("tb-ico").getContext("2d"), 64, false); }
+const TRACK = { on: false, a: null, groups: [], group: null, aim: null, boxFor: null };
+function trackDir(km, brg) {
+  const arc = km / 6371 / D, el = Math.max(-88, -Math.max(0, arc - 40) / 140 * 90 + (arc < 40 ? 3 : 0)), e = el * D, b = brg * D;
+  return { el, v: new THREE.Vector3(Math.sin(b) * Math.cos(e), Math.sin(e), -Math.cos(b) * Math.cos(e)) };
+}
+trackHere = () => {
+  if (!TRACK.on) return;
+  if (TRACK.group) { lookScene.remove(TRACK.group); TRACK.group.children.forEach((s) => s.material.dispose()); }
+  TRACK.groups.forEach((gp) => gp.label.remove());
+  const sites = TRACK.a.sites.map((st) => { const d = dirFor(here[1], here[2], st.lat, st.lon); return { st, km: d.km, brg: d.brg, ...trackDir(d.km, d.brg) }; }).sort((a, b) => a.km - b.km);
+  // nearest first: a site joins the group whose ghost already covers its direction
+  const groups = [];
+  for (const s of sites) {
+    // ghosts that would overlap by more than about half share one ghost and become layers
+    const home = groups.find((gp) => Math.acos(Math.min(1, gp.list[0].v.dot(s.v))) / D < 0.6 * gp.size);
+    if (home) home.list.push(s);
+    else { const near = Math.max(0, Math.min(1, (Math.log10(3000) - Math.log10(Math.max(1, s.km))) / 2)); groups.push({ list: [s], near, size: 5 + 4 * near }); }
+  }
+  TRACK.group = new THREE.Group(); TRACK.group.renderOrder = 20;
+  for (const gp of groups) {
+    const h = gp.list[0]; gp.v = h.v; gp.sel = h;
+    const reserve = gp.list.every((s) => s.st.kind === "reserve");
+    gp.mat = new THREE.SpriteMaterial({ map: PANDA_TEX[reserve ? 1 : 0], transparent: true, depthTest: false, depthWrite: false, opacity: 0.8 });
+    gp.sprite = new THREE.Sprite(gp.mat); gp.sprite.renderOrder = 20; gp.sprite.position.copy(gp.v).multiplyScalar(40);
+    gp.grow = 1;
+    TRACK.group.add(gp.sprite);
+    gp.label = document.createElement("div"); gp.label.className = "track-label"; gp.label.hidden = true; gp.label.setAttribute("aria-hidden", "true"); lookWrap.appendChild(gp.label);
+  }
+  TRACK.groups = groups; TRACK.aim = null; TRACK.boxFor = null;
+  lookScene.add(TRACK.group);
+};
+function siteLine(s) { return `${KINDS[s.st.kind] || ""} · ${fmtDist(s.km)} ${compassWord(s.brg)}${s.km > 6000 ? ", through the Earth" : ""}`; }
+function startTrack(a) {
+  closeFinder(true); hidePop();
+  const go = () => {
+    if (mode !== "look") setBase("look");
+    TRACK.on = true; TRACK.a = a; document.body.classList.add("tracking");
+    if (WHS.look) WHS.look.visible = false;
+    $("tb-name").textContent = a.name[0].toUpperCase() + a.plural.slice(1);
+    $("tb-count").textContent = `${a.sites.length} places · near to far`;
+    $("tb-x").setAttribute("aria-label", `Stop showing ${a.plural}`);
+    $("trackbar").hidden = false;
+    trackHere();
+    const n = TRACK.groups[0];
+    if (n && !(motion.on && motion.got)) {
+      const s = n.list[0], dy = ((s.brg - look.yaw + 540) % 360) - 180;
+      turnAnim = { t0: performance.now(), from: { yaw: look.yaw, pitch: look.pitch }, to: { yaw: look.yaw + dy, pitch: Math.max(-80, s.el - (s.el < -3 ? 4 : -1)) } };
+    }
+    if (n) say(`Showing ${a.sites.length} places to see ${a.plural}. The nearest is ${n.list[0].st.name}, ${fmtDist(n.list[0].km)} ${compassWord(n.list[0].brg)}.`);
+    if (n && motion.on && motion.got) toast(`The nearest ${a.plural} are ${fmtDist(n.list[0].km)} ${compassWord(n.list[0].brg)}. Follow the arrow.`);
+  };
+  if (mode === "place") { backToWorld(); setTimeout(go, 450); } else go();
+}
+function stopTrack() {
+  if (!TRACK.on) return;
+  const a = TRACK.a;
+  TRACK.on = false; document.body.classList.remove("tracking"); $("trackbar").hidden = true;
+  if (TRACK.group) lookScene.remove(TRACK.group);
+  TRACK.groups.forEach((gp) => gp.label.remove()); TRACK.groups = []; TRACK.group = null;
+  if (WHS.look) WHS.look.visible = WHS.on;
+  releaseHud();
+  say(`Stopped showing ${a.plural}`);
+}
+$("tb-x").addEventListener("click", stopTrack);
+function releaseHud() {
+  if (!TRACK.boxFor && !TRACK.aim) return;
+  TRACK.aim = null; TRACK.boxFor = null; focused = undefined; shownStack = null;
+  $("f-layers").hidden = true; $("f-go").textContent = "Explore";
+}
+function trackNearest(dir, maxDeg) {
+  let best = null, bestA = maxDeg;
+  for (const gp of TRACK.groups) { const a = Math.acos(Math.min(1, gp.v.dot(dir))) / D; if (a < bestA) { bestA = a; best = gp; } }
+  return best;
+}
+function trackTap(dir) {
+  if (!TRACK.on) return false;
+  const gp = trackNearest(dir, Math.max(3, look.fov / 10));
+  if (!gp) return false;
+  showTrackPop(TRACK.aim === gp ? gp.sel : gp.list[0]); return true;
+}
+function fillHud(gp) {
+  const s = gp.sel;
+  $("f-name").textContent = s.st.name;
+  $("f-meta").textContent = siteLine(s);
+  $("f-go").textContent = s.st.cam ? "Watch live" : "Details";
+  $("f-go").setAttribute("aria-label", s.st.cam ? `Watch ${s.st.name} live` : `Details about ${s.st.name}`);
+  $("focus").hidden = false;
+  const box = $("f-layers");
+  if (gp.list.length < 2) { box.hidden = true; TRACK.boxFor = gp; return; }
+  if (TRACK.boxFor !== gp) {
+    box.innerHTML = "";
+    gp.list.forEach((x) => {
+      const b = document.createElement("button"); b.type = "button"; b.className = "layer";
+      b.innerHTML = "<b></b><span></span>"; b.querySelector("b").textContent = x.st.short || x.st.name;
+      b.querySelector("span").textContent = fmtDist(x.km);
+      b.addEventListener("click", (e) => { e.stopPropagation(); gp.sel = x; fillHud(gp); say(`${x.st.name}, ${fmtDist(x.km)} away`); });
+      x.pill = b; box.appendChild(b);
+    });
+    shownStack = null;
+  }
+  TRACK.boxFor = gp; box.hidden = false;
+  gp.list.forEach((x) => x.pill.setAttribute("aria-pressed", x === s ? "true" : "false"));
+  if (s.pill && s.pill.scrollIntoView) s.pill.scrollIntoView({ block: "nearest", inline: "nearest", behavior: reduce ? "auto" : "smooth" });
+}
+function updateTrack(w, h) {
+  if (!TRACK.on || !TRACK.groups.length) return;
+  const aim = trackNearest(fwd, Math.max(5, look.fov / 6));
+  if (aim !== TRACK.aim) {
+    if (TRACK.aim) TRACK.aim.sel = TRACK.aim.list[0];
+    TRACK.aim = aim;
+    if (aim) { TRACK.boxFor = null; fillHud(aim); say(`${aim.sel.st.name}. ${siteLine(aim.sel)}`); }
+    else releaseHud();
+  } else if (aim) { $("focus").hidden = false; if (aim.list.length > 1) $("f-layers").hidden = false; else $("f-layers").hidden = true; }
+  // the ghosts: the one you aim at grows and brightens
+  const k = reduce ? 1 : 0.15, boxes = [];
+  if (!$("focus").hidden) { const fr = $("focus").getBoundingClientRect(); boxes.push([fr.left - 10, fr.top - 40, fr.right + 10, fr.bottom]); }
+  const order = TRACK.groups.map((gp) => ({ gp, f: gp.v.dot(fwd) })).sort((a, b) => b.f - a.f);
+  for (const { gp, f } of order) {
+    const on = gp === aim;
+    gp.grow += ((on ? 1.35 : 1) - gp.grow) * k;
+    const sz = 2 * 40 * Math.tan((gp.size * gp.grow * (ar ? 1.3 : 1)) / 2 * D);
+    gp.sprite.scale.set(sz, sz, 1);
+    gp.mat.opacity += ((on ? 1 : 0.72) - gp.mat.opacity) * k;
+    let show = f > Math.cos(Math.min(80, look.fov * 0.75) * D);
+    if (show) {
+      tmp.copy(gp.v).multiplyScalar(40).project(camera);
+      const x = (tmp.x * 0.5 + 0.5) * w, y = (-tmp.y * 0.5 + 0.5) * h + (sz / (2 * 40 * Math.tan(look.fov / 2 * D))) * h * 0.5 + 4;
+      const r = [x - 80, y, x + 80, y + 30];
+      show = tmp.z < 1 && !boxes.some((q) => !(r[2] < q[0] || r[0] > q[2] || r[3] < q[1] || r[1] > q[3]));
+      if (show) {
+        boxes.push(r);
+        gp.label.style.transform = `translate(${x}px, ${y}px) translate(-50%, 0)`;
+        const key = gp.sel.st.name + gp.list.length + (on ? 1 : 0);
+        if (gp.label.dataset.k !== key) {
+          gp.label.dataset.k = key; gp.label.innerHTML = "<small></small>";
+          gp.label.querySelector("small").textContent = gp.list.length > 1 ? `${gp.list.length} places this way` : (gp.sel.st.cam ? "Live cam" : KINDS[gp.sel.st.kind] || "");
+          const n = gp.sel.st.short || gp.sel.st.name; gp.label.append(n.length > 30 ? n.slice(0, 28) + "…" : n);
+        }
+        gp.label.classList.toggle("on", on);
+      }
+    }
+    gp.label.hidden = !show;
+  }
+  // nothing in view: the arrow at the edge points to the closest animal place by angle
+  const edge = $("edge");
+  const inView = TRACK.groups.some((gp) => gp.v.dot(fwd) > Math.cos(Math.min(60, look.fov * 0.45) * D));
+  if (!inView && !zoomAnim) {
+    const near = TRACK.groups.reduce((a, b) => (b.v.dot(fwd) > a.v.dot(fwd) ? b : a));
+    const v = near.v.clone().transformDirection(camera.matrixWorldInverse);
+    let sx = v.x, sy = v.y; const n = Math.hypot(sx, sy) || 1; sx /= n; sy /= n;
+    const mx = w / 2 - 70, my = h / 2 - 110, t = Math.min(mx / Math.max(1e-6, Math.abs(sx)), my / Math.max(1e-6, Math.abs(sy)));
+    edge.style.left = w / 2 + sx * t + "px"; edge.style.top = h / 2 - sy * t + "px";
+    edge.querySelector("i").style.transform = `rotate(${Math.atan2(-sy, sx)}rad)`;
+    edge.querySelector("b").textContent = TRACK.a.plural;
+    edge.querySelector("small").textContent = `${Math.round(Math.acos(Math.min(1, near.v.dot(fwd))) / D)}° away`;
+    edge.hidden = false;
+  } else edge.hidden = true;
+}
+function showTrackPop(s) {
+  hidePop(); popTrack = s.st;
+  const a = TRACK.a, st = s.st;
+  dispatchEvent(new CustomEvent("bisita:pop", { detail: { id: "animal-" + a.id + "-" + st.name, name: st.name, country: st.country, lat: st.lat, lon: st.lon, animal: a.id } }));
+  const ph = a.photo;
+  $("pop-img").hidden = !ph; if (ph) { $("pop-img").src = ph.src; $("pop-img").alt = a.name; }
+  const cr = $("pop-credit"); cr.hidden = !ph; cr.innerHTML = "";
+  if (ph) cr.append(`A ${a.name.toLowerCase()}, not photographed here. Photo: `, Object.assign(document.createElement("a"), { href: ph.page, target: "_blank", rel: "noopener", textContent: `${ph.author}, ${ph.license}` }));
+  $("pop-cat").textContent = `${a.name} · ${KINDS[st.kind] || ""}`;
+  $("pop-name").textContent = st.name;
+  $("pop-meta").textContent = `${st.city}, ${st.country} · ${fmtDist(s.km)} ${compassWord(s.brg)}`;
+  $("pop-note").textContent = st.note; $("pop-note").hidden = false;
+  const cam = $("pop-cam"); cam.hidden = false; cam.classList.toggle("rule", st.kind === "reserve");
+  if (st.cam) { $("pop-go").textContent = `Watch live: ${st.cam.name}`; $("pop-go").hidden = false; cam.textContent = a.camNote + " " + a.asOf; }
+  else { $("pop-go").hidden = true; cam.textContent = (st.kind === "reserve" ? a.rule + " " : "No public live cam that we know of for this place. ") + (st.kind === "reserve" ? "" : a.asOf); }
+  $("pop").hidden = false; setTimeout(() => ($("pop-go").hidden ? $("pop-x") : $("pop-go")).focus(), 30);
 }
 function tapGlobe(x, y) {
   if (!WHS.on || !WHS.globe) return;
@@ -2004,7 +2242,17 @@ function renderResults(q) {
   const fold = (t) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   const s = q.trim().toLowerCase(), f = fold(s);
   const list = PLACES.filter((p) => !s || fold([p.name, p.country, p.region, CATS[p.cat]].join(" ")).includes(f));
-  if (!list.length) { r.innerHTML = `<p style="color:var(--mist);padding:12px 4px">No places match “${s.replace(/[<>&]/g, "")}”. Try a country, like Peru, or a kind of place, like waterfall.</p>`; return; }
+  const animals = (window.ANIMALS || []).filter((a) => !s || [a.name, a.plural, a.sci, ...a.words].some((x) => fold(x).includes(f) || (f.length > 3 && f.includes(fold(x)))));
+  if (animals.length) {
+    const h = document.createElement("h4"); h.textContent = "Animals"; r.appendChild(h);
+    animals.forEach((a) => {
+      const b = document.createElement("button"); b.type = "button"; b.className = "res animal";
+      b.innerHTML = `<b></b><span></span>`; b.querySelector("b").textContent = a.name; b.querySelector("span").textContent = `${a.sites.length} places to see them`;
+      b.addEventListener("click", () => startTrack(a)); r.appendChild(b);
+    });
+  }
+  if (!list.length && animals.length) return;
+  if (!list.length) { r.innerHTML = `<p style="color:var(--mist);padding:12px 4px">No places match “${s.replace(/[<>&]/g, "")}”. Try a country, like Peru, a kind of place, like waterfall, or an animal, like panda.</p>`; return; }
   const groups = {};
   list.forEach((p) => (groups[p.region] = groups[p.region] || []).push(p));
   Object.keys(groups).sort().forEach((g) => {
@@ -2063,7 +2311,7 @@ function frame(now) {
     { const u = dome.material.uniforms.uDay, t = theme === "day" ? 1 : 0; u.value += (t - u.value) * 0.08; biomeMat.color.setRGB(1 - 0.55 * u.value, 1 - 0.35 * u.value, 1 - 0.6 * u.value); }
     renderer.setClearColor(0x081113, dome.visible ? 1 : 0);
     renderer.render(lookScene, camera);
-    updateLook(w, h); updateWhs(w, h);
+    updateLook(w, h); updateWhs(w, h); updateTrack(w, h);
   } else if (galleryShown) {
     // the gallery covers the screen; skip drawing the flyover underneath
   } else {

@@ -183,3 +183,7 @@ Photos from Wikimedia Commons, used under their licenses.
 - zion: [Navajo Sandstone formations in Zion National Park, Utah.- (USA 2016).jpg](https://commons.wikimedia.org/wiki/File:Navajo_Sandstone_formations_in_Zion_National_Park,_Utah.-_(USA_2016).jpg) by Pierre André Leclercq, [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0)
 - zion: [Mountains in Zion National Park, Utah.jpg](https://commons.wikimedia.org/wiki/File:Mountains_in_Zion_National_Park,_Utah.jpg) by “Jon Zander(digon3)”, [CC BY-SA 3.0](http://creativecommons.org/licenses/by-sa/3.0/)
 - zion: [Zion-national-park-sunset.jpg](https://commons.wikimedia.org/wiki/File:Zion-national-park-sunset.jpg) by Gauravbharadwajm, [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0)
+
+Animal photos:
+
+- giant panda: [Grosser Panda.JPG](https://commons.wikimedia.org/wiki/File:Grosser_Panda.JPG) by J. Patrick Fischer, [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0)

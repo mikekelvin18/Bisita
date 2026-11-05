@@ -12,7 +12,7 @@ for pid, ph in (json.load(open(B+'/photos.json')).items() if os.path.exists(B+'/
     if not ph: continue
     im = ImageOps.fit(Image.open(B+'/'+ph[0]['src']).convert('RGB'), (640, 480), Image.LANCZOS)
     im.save(D+'/places/'+pid+'-card.jpg', quality=82, optimize=True, progressive=True)
-for f in ('three.min.js','places.js','profile.js','us-map.json','earth.jpg','earth-bump.jpg','earth-land.png'): shutil.copy(B+'/site/'+f, D)
+for f in ('three.min.js','places.js','animals.js','giant-panda.jpg','profile.js','us-map.json','earth.jpg','earth-bump.jpg','earth-land.png'): shutil.copy(B+'/site/'+f, D)
 if os.path.exists(B+'/data/unesco.json'): shutil.copy(B+'/data/unesco.json', D)
 photos=json.load(open(B+'/photos.json')) if os.path.exists(B+'/photos.json') else {}
 for ph in photos.values():
@@ -33,5 +33,6 @@ open(W+'/.nojekyll','w').close()
 lines=['# Photo credits','','Photos from Wikimedia Commons, used under their licenses.','']
 for pid in sorted(photos):
     for x in photos[pid]: lines.append(f"- {pid}: [{x['title'].replace('File:','')}]({x['page']}) by {x['author']}, [{x['license']}]({x['licenseUrl']})")
+lines+=['','Animal photos:','',"- giant panda: [Grosser Panda.JPG](https://commons.wikimedia.org/wiki/File:Grosser_Panda.JPG) by J. Patrick Fischer, [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0)"]
 open(os.path.join(B,'CREDITS.md'),'w').write('\n'.join(lines)+'\n')
 print('docs/ written')
